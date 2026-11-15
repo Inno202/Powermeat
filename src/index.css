@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Bebas Neue', 'Oswald', sans-serif;
+  --font-heading: 'Oswald', 'Bebas Neue', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --color-pm-red: #D7141A;
+  --color-pm-red-hover: #ba0f14;
+  --color-pm-red-dark: #8F0A0E;
+  --color-pm-black: #111111;
+  --color-pm-charcoal: #1A1A1A;
+  --color-pm-surface: #222222;
+  --color-pm-card: #282828;
+  --color-pm-card-hover: #323232;
+  --color-pm-border: #383838;
+  --color-pm-yellow: #FFC400;
+  --color-pm-yellow-dark: #E6B000;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: #111111;
+    color: #F3F4F6;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: 0.025em;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.05em;
+  }
+}
+
+/* Custom price burst badge */
+.price-starburst {
+  position: relative;
+  background: #FFC400;
+  color: #111111;
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  box-shadow: 0 4px 12px rgba(255, 196, 0, 0.35);
+}
+
+/* Print styles for thermal 80mm and A4 slips */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-slip, #printable-slip * {
+    visibility: visible;
+  }
+  #printable-slip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white;
+    color: black !important;
+    padding: 0;
+    margin: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Butchery product, hamper, combo or meat item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "slug": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 80 },
+        "sku": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "pricingType": { "type": "string", "enum": ["fixed", "per_kg", "per_bag", "per_bucket"] },
+        "price": { "type": "number" },
+        "weightKg": { "type": "number" },
+        "isFreeDelivery": { "type": "boolean" },
+        "stockStatus": { "type": "string", "enum": ["in_stock", "low_stock", "out_of_stock", "hidden"] },
+        "sortOrder": { "type": "number" }
+      },
+      "required": ["id", "name", "slug", "category", "sku", "price", "pricingType", "stockStatus"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer butchery order for delivery or collection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "customerCell": { "type": "string", "maxLength": 30 },
+        "customerEmail": { "type": "string", "maxLength": 150 },
+        "deliveryType": { "type": "string", "enum": ["delivery", "collection"] },
+        "area": { "type": "string", "maxLength": 120 },
+        "deliveryAddress": { "type": "string", "maxLength": 300 },
+        "deliveryDate": { "type": "string", "maxLength": 20 },
+        "subtotal": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["cod", "eft", "online_card"] },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid", "refunded"] },
+        "orderStatus": { "type": "string", "enum": ["new", "confirmed", "packing", "ready_for_collection", "out_for_delivery", "completed", "cancelled"] },
+        "source": { "type": "string", "enum": ["web", "whatsapp", "phone", "walk_in"] },
+        "marketingOptIn": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "customerCell", "deliveryType", "area", "deliveryDate", "total", "orderStatus"]
+    },
+    "StaffUser": {
+      "title": "StaffUser",
+      "description": "Powermeat back-office staff profile with RBAC role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["owner", "manager", "counter", "driver"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role", "active"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Immutable audit trail of back-office modifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userRole": { "type": "string", "maxLength": 30 },
+        "action": { "type": "string", "maxLength": 100 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "userName", "action", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Public butchery catalog readable by all, writable only by Owner and Manager"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders. Readable and manageable by staff (Owner, Manager, Counter, Driver for assigned)"
+    },
+    "/staff/{userId}": {
+      "schema": { "$ref": "#/entities/StaffUser" },
+      "description": "Staff roster and roles managed strictly by the Owner"
+    },
+    "/activity_logs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "Audit trail log records appended on critical changes"
+    }
+  }
+}

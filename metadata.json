@@ -1,0 +1,6 @@
+{
+  "name": "Powermeat Welkom — Online Butchery & Admin System",
+  "description": "Mobile-first online butchery store and central staff management back-office for Powermeat in Welkom, Free State.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
