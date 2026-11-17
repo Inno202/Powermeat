@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { StoreProvider, useStore } from './services/store';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -30,6 +30,7 @@ import { DEMO_MODE } from './services/store';
 import { whatsappLink, telLink } from './utils/contact';
 import { rememberMyOrder } from './utils/myOrders';
 import { runningSpecialLabels } from './utils/specials';
+import { useBackToClose, forgetOpenLayers } from './utils/backButton';
 
 const KNOWN_PAGES = ['admin', 'signin', 'my-orders', 'delivery_areas', 'wholesale', 'contact', 'privacy'];
 
@@ -80,48 +81,20 @@ function StoreFront() {
     return () => window.removeEventListener('hashchange', syncFromAddress);
   }, []);
 
-  // ---- The device Back button ----
-  // An open window (product, cart, menu, checkout) gets its own step in the browser
-  // history, so Back closes the window instead of leaving the page.
-  const {
-    isCartDrawerOpen,
-    setIsCartDrawerOpen
-  } = useStore();
-  const overlayOpen = !!selectedProduct || isCheckoutOpen || isCartDrawerOpen || isNavDrawerOpen;
-  const overlayStep = useRef(false);
-
-  useEffect(() => {
-    if (overlayOpen && !overlayStep.current) {
-      window.history.pushState({ pmOverlay: true }, '');
-      overlayStep.current = true;
-    } else if (!overlayOpen && overlayStep.current) {
-      // Closed with its own button: remove the step Back would otherwise stop at.
-      overlayStep.current = false;
-      if (window.history.state?.pmOverlay) window.history.back();
-    }
-  }, [overlayOpen]);
-
-  useEffect(() => {
-    const onBack = () => {
-      if (!overlayStep.current) return;
-      overlayStep.current = false;
-      setSelectedProduct(null);
-      setIsCheckoutOpen(false);
-      setIsCartDrawerOpen(false);
-      setIsNavDrawerOpen(false);
-    };
-    window.addEventListener('popstate', onBack);
-    return () => window.removeEventListener('popstate', onBack);
-  }, []);
+  // ---- The device Back button: closes an open window first ----
+  const { isCartDrawerOpen, setIsCartDrawerOpen } = useStore();
+  useBackToClose(!!selectedProduct, () => setSelectedProduct(null));
+  useBackToClose(isCheckoutOpen, () => setIsCheckoutOpen(false));
+  useBackToClose(isCartDrawerOpen, () => setIsCartDrawerOpen(false));
+  useBackToClose(isNavDrawerOpen, () => setIsNavDrawerOpen(false));
 
   const navigateTo = (page: string) => {
     setConfirmedOrder(null);
     setActivePage(page);
     const target = page === 'store' ? window.location.pathname : `#${page}`;
     const samePlace = page === 'store' ? window.location.hash === '' : window.location.hash === `#${page}`;
-    if (overlayStep.current) {
+    if (forgetOpenLayers()) {
       // Leaving from inside a window (for example the menu): the window's step becomes the new page.
-      overlayStep.current = false;
       window.history.replaceState(null, '', target);
     } else if (!samePlace) {
       window.history.pushState(null, '', target);

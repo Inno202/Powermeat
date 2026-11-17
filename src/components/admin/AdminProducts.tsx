@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useBackToClose } from '../../utils/backButton';
 import { Copy, Trash2, Edit, X } from 'lucide-react';
 import { confirmAction, toast } from '../ui/feedback';
 import { safeImageUrl } from '../../utils/validate';
@@ -50,6 +51,9 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
 
   // Bulk Price Update Modal
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  // Back closes these windows first.
+  useBackToClose(isEditorOpen, () => setIsEditorOpen(false));
+  useBackToClose(isBulkModalOpen, () => setIsBulkModalOpen(false));
   const [bulkCategory, setBulkCategory] = useState('All');
   const [bulkPercentage, setBulkPercentage] = useState<number>(5);
 

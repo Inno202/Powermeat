@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useBackToClose } from '../../utils/backButton';
 import { X } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { SpecialCampaign } from '../../types';
@@ -28,6 +29,9 @@ export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => voi
 
   // Re-run modal
   const [rerunModalSpecial, setRerunModalSpecial] = useState<SpecialCampaign | null>(null);
+  // Back closes these windows first.
+  useBackToClose(isCreateOpen, () => setIsCreateOpen(false));
+  useBackToClose(!!rerunModalSpecial, () => setRerunModalSpecial(null));
   const [rerunStartDate, setRerunStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [rerunEndDate, setRerunEndDate] = useState('');
 

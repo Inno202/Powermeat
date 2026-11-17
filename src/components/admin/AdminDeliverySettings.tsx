@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useBackToClose } from '../../utils/backButton';
 import { X, Edit } from 'lucide-react';
 import { toast } from '../ui/feedback';
 import { useStore } from '../../services/store';
@@ -10,6 +11,8 @@ export const AdminDeliverySettings: React.FC = () => {
   const [cutoffTime, setCutoffTime] = useState(settings.cutoffTime || '12:00');
   const [newBlockedDate, setNewBlockedDate] = useState('');
   const [editingArea, setEditingArea] = useState<DeliveryArea | null>(null);
+  // Back closes these windows first.
+  useBackToClose(!!editingArea, () => setEditingArea(null));
 
   const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 

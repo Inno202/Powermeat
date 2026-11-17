@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useBackToClose } from '../../utils/backButton';
 import { confirmAction } from '../ui/feedback';
 import { useStore, DEMO_MODE } from '../../services/store';
 import { Role, UserProfile } from '../../types';
@@ -7,6 +8,8 @@ export const AdminStaff: React.FC = () => {
   const { users, staffInvites, addStaff, cancelInvite, updateStaffRole, toggleStaffStatus, currentUser } = useStore();
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  // Back closes these windows first.
+  useBackToClose(isInviteOpen, () => setIsInviteOpen(false));
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');

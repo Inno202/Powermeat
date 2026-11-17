@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useBackToClose } from '../../utils/backButton';
 import { X, Printer, MessageCircle, Eye, FileText } from 'lucide-react';
 import { toast } from '../ui/feedback';
 import { proofKind } from '../../utils/validate';
@@ -66,6 +67,11 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
     order: Order;
     status: 'completed' | 'cancelled';
   } | null>(null);
+  // Back closes these windows first.
+  useBackToClose(!!selectedOrderForDetails, () => setSelectedOrderForDetails(null));
+  useBackToClose(!!slipModal, () => setSlipModal(null));
+  useBackToClose(!!weighModal, () => setWeighModal(null));
+  useBackToClose(!!driverModal, () => setDriverModal(null));
   const [driverCashInput, setDriverCashInput] = useState<string>('');
   const [driverNotesInput, setDriverNotesInput] = useState<string>('');
 
