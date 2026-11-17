@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore } from '../../services/store';
 import { formatZAR, calcPricePerKg } from '../../utils/pricing';
 import { Product } from '../../types';
+import { runningSpecialLabels } from '../../utils/specials';
 import { ProductPhoto } from '../ui/ProductPhoto';
 import { PRICE_UNIT } from './ProductCard';
 
@@ -12,11 +13,9 @@ interface SpecialsCarouselProps {
 export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProduct }) => {
   const { products, specials, addToCart } = useStore();
 
-  const activeSpecials = specials.filter(s => s.active);
-  const specialProductIds = new Set(activeSpecials.flatMap(s => s.productIds));
-  const activeSpecialProducts = products.filter(
-    p => p.stockStatus !== 'hidden' && (p.isSpecial || specialProductIds.has(p.id))
-  );
+  // Only specials that are switched on and within their dates are shown.
+  const labels = runningSpecialLabels(specials);
+  const activeSpecialProducts = products.filter(p => p.stockStatus !== 'hidden' && labels.has(p.id));
 
   return (
     <section className="pt-16 md:pt-20" aria-labelledby="specials-title">
@@ -33,8 +32,7 @@ export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProd
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-4 snap-x no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {activeSpecialProducts.map(product => {
-              const matchedSpecial = activeSpecials.find(s => s.productIds.includes(product.id));
-              const badgeLabel = product.specialLabel || matchedSpecial?.label || 'Special';
+              const badgeLabel = labels.get(product.id) || 'Special';
               const pricePerKg = calcPricePerKg(product.price, product.weightKg);
 
               return (

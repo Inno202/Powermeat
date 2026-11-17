@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { StoreProvider, useStore } from './services/store';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -29,6 +29,7 @@ import { SignIn } from './components/account/SignIn';
 import { DEMO_MODE } from './services/store';
 import { whatsappLink, telLink } from './utils/contact';
 import { rememberMyOrder } from './utils/myOrders';
+import { runningSpecialLabels } from './utils/specials';
 
 const KNOWN_PAGES = ['admin', 'signin', 'my-orders', 'delivery_areas', 'wholesale', 'contact', 'privacy'];
 
@@ -52,6 +53,7 @@ function StoreFront() {
     setIsNavDrawerOpen,
     addToCart,
     settings,
+    specials,
     catalogueReady,
     authStatus,
     account
@@ -68,7 +70,8 @@ function StoreFront() {
   // including a GitHub Pages sub-folder. Example: .../Powermeat/#admin
   useEffect(() => {
     const syncFromAddress = () => {
-      const page = window.location.hash.replace(/^#\/?/, '');
+      // "#admin/orders" is the business area's Orders section.
+      const page = window.location.hash.replace(/^#\/?/, '').split('/')[0];
       setConfirmedOrder(null);
       setActivePage(KNOWN_PAGES.includes(page) ? page : 'store');
     };
@@ -77,11 +80,50 @@ function StoreFront() {
     return () => window.removeEventListener('hashchange', syncFromAddress);
   }, []);
 
+  // ---- The device Back button ----
+  // An open window (product, cart, menu, checkout) gets its own step in the browser
+  // history, so Back closes the window instead of leaving the page.
+  const {
+    isCartDrawerOpen,
+    setIsCartDrawerOpen
+  } = useStore();
+  const overlayOpen = !!selectedProduct || isCheckoutOpen || isCartDrawerOpen || isNavDrawerOpen;
+  const overlayStep = useRef(false);
+
+  useEffect(() => {
+    if (overlayOpen && !overlayStep.current) {
+      window.history.pushState({ pmOverlay: true }, '');
+      overlayStep.current = true;
+    } else if (!overlayOpen && overlayStep.current) {
+      // Closed with its own button: remove the step Back would otherwise stop at.
+      overlayStep.current = false;
+      if (window.history.state?.pmOverlay) window.history.back();
+    }
+  }, [overlayOpen]);
+
+  useEffect(() => {
+    const onBack = () => {
+      if (!overlayStep.current) return;
+      overlayStep.current = false;
+      setSelectedProduct(null);
+      setIsCheckoutOpen(false);
+      setIsCartDrawerOpen(false);
+      setIsNavDrawerOpen(false);
+    };
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  }, []);
+
   const navigateTo = (page: string) => {
     setConfirmedOrder(null);
     setActivePage(page);
     const target = page === 'store' ? window.location.pathname : `#${page}`;
-    if (page === 'store' ? window.location.hash !== '' : window.location.hash !== `#${page}`) {
+    const samePlace = page === 'store' ? window.location.hash === '' : window.location.hash === `#${page}`;
+    if (overlayStep.current) {
+      // Leaving from inside a window (for example the menu): the window's step becomes the new page.
+      overlayStep.current = false;
+      window.history.replaceState(null, '', target);
+    } else if (!samePlace) {
       window.history.pushState(null, '', target);
     }
     window.scrollTo({ top: 0 });
@@ -148,11 +190,12 @@ function StoreFront() {
   }
 
   // Filter products for the store catalog
+  const onSpecial = runningSpecialLabels(specials);
   const filteredProducts = products.filter(p => {
     if (p.stockStatus === 'hidden') return false;
 
     if (activeCategory === 'Specials') {
-      if (!p.isSpecial) return false;
+      if (!onSpecial.has(p.id)) return false;
     } else if (activeCategory !== 'All') {
       if (p.category !== activeCategory && p.subCategory !== activeCategory) {
         return false;
@@ -409,7 +452,13 @@ function StoreFront() {
       />
 
       {/* Cart Drawer */}
-      <CartDrawer onCheckout={() => setIsCheckoutOpen(true)} />
+      <CartDrawer
+        onCheckout={() => setIsCheckoutOpen(true)}
+        onSelectProduct={p => {
+          setIsCartDrawerOpen(false);
+          setSelectedProduct(p);
+        }}
+      />
 
       {/* Checkout Modal */}
       <CheckoutModal

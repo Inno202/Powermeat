@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import { useStore } from '../../services/store';
+import { Product } from '../../types';
 import { formatZAR, calculateLineTotal } from '../../utils/pricing';
 import { ProductPhoto } from '../ui/ProductPhoto';
 import { QuantityStepper } from '../ui/QuantityStepper';
@@ -8,9 +9,11 @@ import { confirmAction } from '../ui/feedback';
 
 interface CartDrawerProps {
   onCheckout: () => void;
+  /** Opens a product's window (what's inside, price, options). */
+  onSelectProduct: (product: Product) => void;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
+export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout, onSelectProduct }) => {
   const {
     cart,
     removeFromCart,
@@ -93,14 +96,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
 
                 return (
                   <li key={`${item.product.id}-${item.selectedOption || ''}-${idx}`} className="py-4 flex gap-3.5">
-                    <div className="relative w-20 h-20 rounded-2xl bg-sand shrink-0 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => onSelectProduct(item.product)}
+                      aria-label={`View ${item.product.name}`}
+                      className="relative w-20 h-20 rounded-2xl bg-sand shrink-0 overflow-hidden"
+                    >
                       <ProductPhoto product={item.product} alt="" />
-                    </div>
+                    </button>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
-                          <h3 className="font-semibold leading-snug line-clamp-2">{item.product.name}</h3>
+                          <h3 className="font-semibold leading-snug line-clamp-2">
+                            <button
+                              type="button"
+                              onClick={() => onSelectProduct(item.product)}
+                              className="text-left hover:text-brand-accent-deep min-h-[44px]"
+                            >
+                              {item.product.name}
+                            </button>
+                          </h3>
                           {item.selectedOption && <p className="text-sm text-ink-soft">{item.selectedOption}</p>}
                         </div>
                         <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { Role } from '../../types';
@@ -41,7 +41,25 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
     createOrder
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  // The section is kept in the address (#admin/orders), so the device Back button
+  // steps back through the sections that were opened.
+  const tabFromAddress = () => window.location.hash.replace(/^#\/?/, '').split('/')[1] || 'dashboard';
+  const [activeTab, setTab] = useState<string>(tabFromAddress);
+  useEffect(() => {
+    const sync = () => setTab(tabFromAddress());
+    window.addEventListener('hashchange', sync);
+    window.addEventListener('popstate', sync);
+    return () => {
+      window.removeEventListener('hashchange', sync);
+      window.removeEventListener('popstate', sync);
+    };
+  }, []);
+  const setActiveTab = (tab: string) => {
+    setTab(tab);
+    const target = tab === 'dashboard' ? '#admin' : `#admin/${tab}`;
+    if (window.location.hash !== target) window.history.pushState(null, '', target);
+    window.scrollTo({ top: 0 });
+  };
   const [loginEmailInput, setLoginEmailInput] = useState('');
   const [loginError, setLoginError] = useState('');
 
