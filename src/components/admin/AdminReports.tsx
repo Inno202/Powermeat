@@ -97,7 +97,6 @@ export const AdminReports: React.FC = () => {
         {/* Category Sales Breakdown */}
         <div className="lg:col-span-2 p-5 space-y-4 panel">
           <h3 className="display flex items-center gap-2 text-2xl">
-            <PieChart size={18} className="text-brand-accent-deep" />
             <span>Revenue by Butchery Category</span>
           </h3>
 
@@ -124,7 +123,6 @@ export const AdminReports: React.FC = () => {
         {/* Fulfillment & Payment Breakdown */}
         <div className="p-5 space-y-5 panel">
           <h3 className="display flex items-center gap-2 text-2xl">
-            <TrendingUp size={18} className="text-brand-yellow-deep" />
             <span>Fulfillment Split</span>
           </h3>
 

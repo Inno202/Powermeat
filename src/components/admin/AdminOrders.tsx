@@ -566,7 +566,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
       {/* MODAL 1: ORDER DETAIL & WEIGH ADJUST MODAL */}
       {selectedOrderForDetails && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-2 sm:p-4"
           onClick={() => setSelectedOrderForDetails(null)}
         >
           <div
@@ -588,7 +588,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
               ><X size={18} /></button>
             </div>
 
-            <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto text-sm sm:text-sm">
+            <div className="p-6 space-y-5 max-h-[80dvh] overflow-y-auto text-sm sm:text-sm">
               {/* Customer info */}
               <div className="grid grid-cols-2 gap-4 p-4 panel">
                 <div>
@@ -763,7 +763,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
       {/* MODAL 2: WEIGH & ADJUST PROMPT */}
       {weighModal && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setWeighModal(null)}
         >
           <div
@@ -772,7 +772,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
           >
             <div className="flex items-center justify-between border-b border-ink/10 pb-3">
               <h3 className="display flex items-center gap-2 text-2xl">
-                <Scale size={18} className="text-brand-yellow-deep" />
                 <span>Weigh & Adjust Per-Kg Line</span>
               </h3>
               <button onClick={() => setWeighModal(null)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-ink-soft hover:text-ink"><X size={18} /></button>
@@ -846,7 +845,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
       {/* MODAL 3: DRIVER DELIVERY RECORDING */}
       {driverModal && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setDriverModal(null)}
         >
           <div

@@ -199,6 +199,14 @@
   .lift:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.35); }
 }
 
+/* Pop-up windows: centred when they fit, and when taller than the screen they start
+   at the top and scroll, so the top and the close button are never cut off. */
+.modal-overlay > * {
+  margin-top: auto;
+  margin-bottom: auto;
+  flex-shrink: 0;
+}
+
 /* Drawers and sheets settle in. */
 .sheet-in {
   transition: opacity 0.25s var(--ease-out), transform 0.3s var(--ease-out);

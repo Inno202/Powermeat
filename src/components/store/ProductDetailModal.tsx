@@ -58,29 +58,32 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 flex items-start sm:items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 modal-overlay flex items-start justify-center p-2 sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-title"
-        className="sheet-in relative w-full max-w-4xl bg-paper text-ink rounded-3xl overflow-hidden my-2 sm:my-6"
+        className="sheet-in relative w-full max-w-md bg-paper text-ink rounded-3xl"
         onClick={e => e.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close product"
-          className="icon-btn absolute top-3 right-3 z-20 bg-white text-ink shadow-md hover:bg-sand"
-        >
-          <X size={20} />
-        </button>
+        {/* Stays in view while a long product is scrolled. */}
+        <div className="sticky top-0 z-20 h-0 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close product"
+            className="icon-btn mt-3 mr-3 bg-white text-ink shadow-md hover:bg-sand"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-        <div className="p-3 sm:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+        <div className="p-3 sm:p-4">
+          <div className="flex flex-col gap-5">
             <div>
-              <div className="relative aspect-square w-full rounded-[1.25rem] sm:rounded-3xl overflow-hidden bg-sand">
+              <div className="relative aspect-[4/3] w-full rounded-[1.25rem] overflow-hidden bg-sand">
                 <ProductPhoto src={product.imageUrl} alt={product.name} eager />
                 {product.isFreeDelivery && (
                   <span className="badge bg-white text-ink absolute top-3 left-3">
@@ -92,7 +95,7 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
               <p className="text-xs text-ink-soft mt-2 px-1">Image varies from product</p>
             </div>
 
-            <div className="flex flex-col px-1 sm:px-0 md:pt-8">
+            <div className="flex flex-col px-2 pb-2">
               <button
                 type="button"
                 onClick={() => {
@@ -104,12 +107,12 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
                 {product.category}
               </button>
 
-              <h2 id="product-title" className="display text-4xl sm:text-5xl">
+              <h2 id="product-title" className="display text-3xl sm:text-4xl">
                 {product.name}
               </h2>
 
               <div className="mt-4 flex items-center flex-wrap gap-3">
-                <span className="price-tag text-xl px-4 py-1.5">
+                <span className="price-tag text-lg px-3.5 py-1">
                   {formatZAR(product.price)}
                   {PRICE_UNIT[product.pricingType] && (
                     <span className="text-sm font-semibold">{PRICE_UNIT[product.pricingType]}</span>
@@ -120,7 +123,7 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
                 </span>
               </div>
 
-              <p className="mt-4 text-ink-soft">{product.description}</p>
+              <p className="mt-3 text-sm text-ink-soft">{product.description}</p>
 
               {product.options && product.options.length > 0 && (
                 <fieldset className="mt-5">
@@ -163,13 +166,13 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
                 type="button"
                 onClick={handleAddToCart}
                 disabled={soldOut}
-                className="btn btn-lg btn-accent btn-block mt-6"
+                className="btn btn-accent btn-block mt-5"
               >
                 <ShoppingCart size={20} />
                 <span className="num">{soldOut ? 'Sold out' : `Add to cart · ${formatZAR(estimatedTotal)}`}</span>
               </button>
 
-              <p className="mt-4 text-sm text-ink-soft">
+              <p className="mt-3 text-sm text-ink-soft">
                 {product.isFreeDelivery ? 'This item qualifies for free delivery. ' : 'Standard area delivery rates apply. '}
                 Order by <strong className="text-ink">12:00 noon</strong> the day before delivery or collection.
               </p>
@@ -177,11 +180,11 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
           </div>
 
           {product.hamperItems && product.hamperItems.length > 0 && (
-            <section className="mt-10 px-1 sm:px-0" aria-labelledby="inside-title">
-              <h3 id="inside-title" className="display text-3xl mb-4">
+            <section className="mt-6 px-2" aria-labelledby="inside-title">
+              <h3 id="inside-title" className="display text-2xl mb-3">
                 What's <span className="text-brand-accent">inside</span>
               </h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
+              <ul className="space-y-2 text-sm">
                 {product.hamperItems.map((item, idx) => (
                   <li key={item.id || idx} className="flex items-start gap-2.5">
                     <Check size={18} className="text-brand-accent-deep shrink-0 mt-1" />
@@ -193,11 +196,11 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
           )}
 
           {related.length > 0 && (
-            <section className="mt-10 px-1 sm:px-0 pb-2" aria-labelledby="related-title">
-              <h3 id="related-title" className="display text-3xl mb-4">
+            <section className="mt-6 px-2 pb-2" aria-labelledby="related-title">
+              <h3 id="related-title" className="display text-2xl mb-3">
                 More {product.category}
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-2">
                 {related.map(rel => (
                   <button
                     key={rel.id}
@@ -205,7 +208,7 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
                     onClick={() => onSelectRelated(rel)}
                     className="panel rounded-2xl p-2 flex items-center gap-3 text-left hover:border-ink/30 transition-colors"
                   >
-                    <span className="relative w-16 h-16 rounded-xl bg-sand shrink-0 overflow-hidden block">
+                    <span className="relative w-14 h-14 rounded-xl bg-sand shrink-0 overflow-hidden block">
                       <ProductPhoto src={rel.imageUrl} alt="" />
                     </span>
                     <span className="min-w-0 flex-1">

@@ -86,14 +86,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClick={onOpenNewSpecialModal}
               className="btn btn-sm btn-outline"
             >
-              <Flame size={15} />
               <span>New Special</span>
             </button>
             <button
               onClick={onOpenNewProductModal}
               className="btn btn-sm btn-outline"
             >
-              <Package size={15} />
               <span>New Product</span>
             </button>
           </div>
@@ -146,9 +144,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="flex items-center justify-between text-ink-soft mb-2">
             <span className="text-sm font-bold ">New Orders</span>
-            <div className="p-1.5 bg-red-50 text-brand-accent-deep rounded-lg">
-              <ShoppingBag size={16} />
-            </div>
           </div>
           <div className="display text-3xl text-ink">
             {newOrders.length}
@@ -163,9 +158,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="flex items-center justify-between text-ink-soft mb-2">
             <span className="text-sm font-bold ">To Pack</span>
-            <div className="p-1.5 bg-amber-50 text-brand-yellow-deep rounded-lg">
-              <Package size={16} />
-            </div>
           </div>
           <div className="display text-3xl text-ink">
             {ordersToPack.length}
@@ -180,9 +172,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="flex items-center justify-between text-ink-soft mb-2">
             <span className="text-sm font-bold ">Deliveries</span>
-            <div className="p-1.5 bg-blue-50 text-blue-800 rounded-lg">
-              <Truck size={16} />
-            </div>
           </div>
           <div className="display text-3xl text-ink">
             {deliveriesPending.length}
@@ -197,9 +186,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="flex items-center justify-between text-ink-soft mb-2">
             <span className="text-sm font-bold ">Store Pickups</span>
-            <div className="p-1.5 bg-emerald-50 text-emerald-800 rounded-lg">
-              <Store size={16} />
-            </div>
           </div>
           <div className="display text-3xl text-ink">
             {collectionsToday.length}
@@ -259,9 +245,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Deliveries Per Area Table */}
         <div className="p-5 space-y-3 panel">
           <div className="flex items-center justify-between border-b border-ink/10 pb-3">
-            <h3 className="display flex items-center gap-2 text-2xl">
-              <Truck size={18} className="text-brand-accent-deep" />
-              <span>Deliveries Per Area</span>
+            <h3 className="display flex items-center gap-2 text-2xl"><span>Deliveries Per Area</span>
             </h3>
             <span className="text-sm text-ink-soft font-semibold">Active Dispatch</span>
           </div>
@@ -296,9 +280,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Recent Orders Quick List */}
         <div className="p-5 space-y-3 panel">
           <div className="flex items-center justify-between border-b border-ink/10 pb-3">
-            <h3 className="display flex items-center gap-2 text-2xl">
-              <Clock size={18} className="text-brand-yellow-deep" />
-              <span>Latest Customer Orders</span>
+            <h3 className="display flex items-center gap-2 text-2xl"><span>Latest Customer Orders</span>
             </h3>
             <button
               onClick={() => onNavigateTab('orders')}

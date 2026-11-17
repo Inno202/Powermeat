@@ -22,7 +22,8 @@ export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () =
     resetPassword,
     resendVerification,
     refreshAccount,
-    logout
+    logout,
+    staffProblems
   } = useStore();
 
   const [mode, setMode] = useState<Mode>('sign_in');
@@ -96,6 +97,35 @@ export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () =
         <Loader2 size={20} className="animate-spin" />
         Checking your sign-in
       </p>
+    );
+  }
+
+  if (authStatus === 'needs_fix' && account) {
+    return shell(
+      <>
+        <h1 className="display text-4xl">Your staff record needs a small fix</h1>
+        <p className="mt-3 text-ink-soft">
+          You are signed in as <strong className="text-ink">{account.email}</strong>. The business area only opens once the
+          record in Firestore is exactly right. In the Firebase console open Firestore Database, then{' '}
+          <code className="num">staff</code>, then the document with this account code:
+        </p>
+        <span className="mt-3 flex items-center gap-2">
+          <code className="num break-all rounded-lg bg-sand px-2 py-1.5 select-all">{account.uid}</code>
+          <button type="button" onClick={copyUid} aria-label="Copy account code" className="icon-btn hover:bg-sand">
+            <Copy size={18} />
+          </button>
+        </span>
+        <h2 className="field-label mt-6">What to change</h2>
+        <ul className="list-disc pl-5 space-y-2">
+          {staffProblems.map(p => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+        <p className="mt-4 text-ink-soft">Save the change in Firebase. This page updates by itself.</p>
+        <button type="button" onClick={logout} className="btn btn-outline mt-6">
+          Sign out
+        </button>
+      </>
     );
   }
 
