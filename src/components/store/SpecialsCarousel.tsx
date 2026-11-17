@@ -1,8 +1,10 @@
 import React from 'react';
-import { Flame, Clock, Plus, Tag } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR, calcPricePerKg } from '../../utils/pricing';
 import { Product } from '../../types';
+import { ProductPhoto } from '../ui/ProductPhoto';
+import { PRICE_UNIT } from './ProductCard';
 
 interface SpecialsCarouselProps {
   onSelectProduct: (product: Product) => void;
@@ -11,126 +13,68 @@ interface SpecialsCarouselProps {
 export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProduct }) => {
   const { products, specials, addToCart } = useStore();
 
-  // Find active specials
   const activeSpecials = specials.filter(s => s.active);
-
-  // Collect products in active specials
   const specialProductIds = new Set(activeSpecials.flatMap(s => s.productIds));
   const activeSpecialProducts = products.filter(
     p => p.stockStatus !== 'hidden' && (p.isSpecial || specialProductIds.has(p.id))
   );
 
   return (
-    <section className="bg-[#141414] py-8 border-b border-[#262626]">
+    <section className="pt-16 md:pt-20" aria-labelledby="specials-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-[#D7141A] rounded-md text-white">
-              <Flame size={20} className="fill-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-heading font-extrabold uppercase tracking-wide text-white">
-                Active Specials & Promos
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-400">
-                Limited time butcher cuts and bulk deals while stock lasts
-              </p>
-            </div>
-          </div>
-        </div>
+        <h2 id="specials-title" className="display text-4xl sm:text-5xl mb-8">
+          This week's <span className="text-brand-accent">specials</span>
+        </h2>
 
         {activeSpecialProducts.length === 0 ? (
-          <div className="bg-[#1C1C1C] rounded-xl p-8 text-center border border-[#2E2E2E]">
-            <p className="text-base font-bold text-neutral-300">
-              No specials running right now — check back at month end!
-            </p>
-            <p className="text-xs text-neutral-500 mt-1">
-              Our master butchers are preparing fresh cuts for upcoming promotions.
-            </p>
+          <div className="panel p-8 text-center">
+            <p className="display text-2xl">No specials running right now</p>
+            <p className="text-ink-soft mt-2">Check back at month end for the next butchery deals.</p>
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x no-scrollbar">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {activeSpecialProducts.map(product => {
               const matchedSpecial = activeSpecials.find(s => s.productIds.includes(product.id));
-              const badgeLabel = product.specialLabel || matchedSpecial?.label || 'Special Deal';
+              const badgeLabel = product.specialLabel || matchedSpecial?.label || 'Special';
               const pricePerKg = calcPricePerKg(product.price, product.weightKg);
 
               return (
-                <div
+                <article
                   key={product.id}
-                  className="w-72 sm:w-80 shrink-0 snap-start bg-[#1F1F1F] rounded-xl border border-[#333] hover:border-[#D7141A] transition-all duration-200 overflow-hidden flex flex-col group"
+                  className="group panel w-72 sm:w-80 shrink-0 snap-start overflow-hidden flex flex-col"
                 >
-                  {/* Image container */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => onSelectProduct(product)}
-                    className="relative aspect-4/3 bg-neutral-900 cursor-pointer overflow-hidden"
+                    aria-label={`View ${product.name}`}
+                    className="relative block aspect-[4/3] bg-sand overflow-hidden"
                   >
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-[#D7141A] font-display text-4xl italic">
-                        POWERMEAT
-                      </div>
-                    )}
-
-                    {/* Ribbon badge */}
-                    <div className="absolute top-2.5 left-2.5">
-                      <span className="bg-[#D7141A] text-white text-[11px] font-extrabold px-2.5 py-1 rounded shadow-md uppercase tracking-wide flex items-center gap-1">
-                        <Flame size={12} className="fill-white" />
-                        <span>{badgeLabel}</span>
-                      </span>
-                    </div>
-
-                    {/* Yellow price starburst */}
-                    <div className="absolute bottom-2.5 right-2.5 price-starburst px-3 py-1 rounded-md text-sm font-extrabold shadow-lg">
+                    <ProductPhoto src={product.imageUrl} alt={product.name} className="photo-zoom" />
+                    <span className="badge bg-brand-accent text-white absolute top-2.5 left-2.5">{badgeLabel}</span>
+                    <span className="price-tag absolute bottom-2.5 right-2.5">
                       {formatZAR(product.price)}
-                      {product.pricingType === 'per_kg' && <span className="text-xs">/kg</span>}
-                    </div>
+                      {PRICE_UNIT[product.pricingType] && (
+                        <span className="text-xs font-semibold">{PRICE_UNIT[product.pricingType]}</span>
+                      )}
+                    </span>
+                  </button>
+
+                  <div className="p-5 flex-1 flex flex-col">
+                    <p className="num text-sm text-brand-accent-deep font-semibold">
+                      {pricePerKg || product.category}
+                    </p>
+                    <h3 className="display text-2xl mt-1 line-clamp-1">{product.name}</h3>
+                    <p className="text-sm text-ink-soft mt-1.5 line-clamp-2 flex-1">{product.description}</p>
+                    <button
+                      type="button"
+                      onClick={() => addToCart(product, 1)}
+                      className="btn btn-accent btn-block mt-4"
+                    >
+                      <Plus size={18} />
+                      <span>Add to cart</span>
+                    </button>
                   </div>
-
-                  {/* Body */}
-                  <div className="p-4 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between text-xs text-neutral-400 mb-1">
-                        <span className="uppercase font-semibold tracking-wider">
-                          {product.category}
-                        </span>
-                        {pricePerKg && (
-                          <span className="text-[#FFC400] font-bold">{pricePerKg}</span>
-                        )}
-                      </div>
-                      <h3
-                        onClick={() => onSelectProduct(product)}
-                        className="text-base font-bold text-white group-hover:text-[#D7141A] transition-colors cursor-pointer truncate"
-                      >
-                        {product.name}
-                      </h3>
-                      <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
-                        {product.description}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-[#2C2C2C] flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-[11px] text-neutral-400">
-                        <Clock size={12} className="text-[#FFC400]" />
-                        <span>While stock lasts</span>
-                      </div>
-
-                      <button
-                        onClick={() => addToCart(product, 1)}
-                        className="bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-1.5 px-3 rounded flex items-center gap-1 transition cursor-pointer"
-                      >
-                        <Plus size={14} />
-                        <span>Add to cart</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                </article>
               );
             })}
           </div>

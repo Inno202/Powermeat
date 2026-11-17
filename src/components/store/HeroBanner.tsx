@@ -1,74 +1,96 @@
-import React from 'react';
-import { ArrowDown, MessageCircle, Truck, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowDown, MessageCircle, Pause, Play } from 'lucide-react';
 import { useStore } from '../../services/store';
+import { AccentTitle, HERO_PHOTOS } from '../ui/PageHero';
+import { whatsappLink } from '../../utils/contact';
 
 interface HeroBannerProps {
   onOrderNow: () => void;
 }
 
+const SLIDE_MS = 6000;
+
 export const HeroBanner: React.FC<HeroBannerProps> = ({ onOrderNow }) => {
   const { settings } = useStore();
-  const digitsOnly = settings.whatsapp.replace(/[^0-9]/g, '');
-  const cleanPhone = digitsOnly.startsWith('0') ? '27' + digitsOnly.slice(1) : digitsOnly;
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+  const [active, setActive] = useState(0);
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
+  // The slideshow does not auto-play for people who ask for reduced motion.
+  const [playing, setPlaying] = useState(
+    () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(
+      () => setActive(i => (i + 1) % HERO_PHOTOS.length),
+      SLIDE_MS
+    );
+    return () => window.clearInterval(timer);
+  }, [playing]);
+
+  const whatsappUrl = whatsappLink(
+    settings.whatsapp,
     'Hello Powermeat Welkom! I want to place an order from your website catalog.'
-  )}`;
+  );
 
   return (
-    <div className="relative bg-gradient-to-b from-[#111111] via-[#1A1A1A] to-[#111111] border-b border-[#2B2B2B] overflow-hidden">
-      {/* Background butchery texture overlay with low opacity */}
-      <div
-        className="absolute inset-0 opacity-20 bg-cover bg-center pointer-events-none mix-blend-luminosity"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=80')`
-        }}
-      />
-      <div className="absolute inset-0 bg-radial from-transparent via-[#111111]/80 to-[#111111] pointer-events-none" />
+    <section className="px-3 sm:px-4 pt-3 sm:pt-4" aria-label="Welcome">
+      <div className="relative overflow-hidden rounded-[2rem] bg-charcoal min-h-[460px] sm:min-h-[560px] flex items-end">
+        {HERO_PHOTOS.map((src, i) =>
+          failed[i] ? null : (
+            <div key={src} className="slide absolute inset-0" data-active={i === active} aria-hidden="true">
+              <img
+                src={src}
+                alt=""
+                loading={i === 0 ? 'eager' : 'lazy'}
+                onError={() => setFailed(f => ({ ...f, [i]: true }))}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" aria-hidden="true" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 flex flex-col items-center text-center">
-        {/* Free Delivery Announcement Chip */}
-        <div className="inline-flex items-center gap-2 bg-[#D7141A]/20 border border-[#D7141A] text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold mb-6 shadow-sm">
-          <Truck size={16} className="text-[#FFC400]" />
-          <span>FREE DELIVERY on any Family Hamper & Meat Combo!</span>
+        <div className="relative hero-rise w-full max-w-7xl mx-auto px-5 sm:px-8 pb-20 sm:pb-16 pt-24">
+          <h1 className="display text-white text-5xl sm:text-6xl md:text-7xl max-w-[14ch]">
+            <AccentTitle text={settings.heroTitle} />
+          </h1>
+          <p className="mt-5 text-white/90 text-base sm:text-lg max-w-[46ch]">{settings.heroSubtitle}</p>
+          <div className="mt-7 flex flex-col sm:flex-row gap-3">
+            <button type="button" onClick={onOrderNow} className="btn btn-lg btn-accent hover:bg-white hover:text-ink">
+              <span>Order now</span>
+              <ArrowDown size={18} />
+            </button>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-outline-light">
+              <MessageCircle size={18} />
+              <span>Order on WhatsApp</span>
+            </a>
+          </div>
         </div>
 
-        {/* Main Title (Bebas / Oswald bold condensed) */}
-        <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold italic tracking-wider text-white uppercase max-w-4xl drop-shadow-lg leading-none">
-          {settings.heroTitle}
-        </h1>
-
-        {/* Subtitle */}
-        <p className="mt-4 text-base sm:text-xl text-neutral-300 max-w-2xl font-sans leading-relaxed">
-          {settings.heroSubtitle}
-        </p>
-
-        {/* Local Welkom Badge */}
-        <div className="mt-3 flex items-center gap-2 text-xs text-[#FFC400] font-semibold">
-          <Sparkles size={14} />
-          <span>Butchery at 145 Power Road, Welkom • Fast Free State Delivery</span>
-        </div>
-
-        {/* Call to Action Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 flex items-center gap-1">
+          {HERO_PHOTOS.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Show photo ${i + 1} of ${HERO_PHOTOS.length}`}
+              aria-current={i === active}
+              className="w-[44px] h-[44px] flex items-center justify-center"
+            >
+              <span className={`block h-2 rounded-full transition-all ${i === active ? 'w-6 bg-white' : 'w-2 bg-white/50'}`} />
+            </button>
+          ))}
           <button
-            onClick={onOrderNow}
-            className="w-full sm:w-auto bg-[#D7141A] hover:bg-[#ba0f14] text-white font-heading text-xl font-bold py-3.5 px-8 rounded-lg shadow-xl shadow-red-950/40 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 transition cursor-pointer"
+            type="button"
+            onClick={() => setPlaying(p => !p)}
+            aria-label={playing ? 'Pause photo slideshow' : 'Play photo slideshow'}
+            className="icon-btn bg-white/15 text-white hover:bg-white/30"
           >
-            <span>Order Now</span>
-            <ArrowDown size={20} />
+            {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
-
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20ba59] text-white font-heading text-xl font-bold py-3.5 px-8 rounded-lg shadow-xl shadow-emerald-950/30 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 transition cursor-pointer"
-          >
-            <MessageCircle size={22} className="fill-white" />
-            <span>WhatsApp Us</span>
-          </a>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

@@ -8,23 +8,29 @@ A mobile-first e-commerce web platform and central administrative back-office bu
 
 ---
 
-## 1. Demo Logins (Seeded for Instant Access)
+## 1. Staff Demo Mode (read this first)
 
-The platform includes seeded accounts for all 4 operational roles. You can sign in using the credentials below, or click any role in the **Role Switcher** bar at the top of the `/admin` screen for instant testing:
+The staff area currently runs in **demo mode**: there are **no passwords**, and all data (products, orders, staff) is saved in the visitor's own browser. It is meant for trying the system out, not for real customer data.
 
-| Role | Email | Password | Permissions & Responsibilities |
-|---|---|---|---|
-| **Owner / Admin** | `owner@powermeat.co.za` | `Powermeat#2026` | Full system access: products, prices, bulk price updates, specials, settings, staff accounts, financial reports, delete actions. |
-| **Store Manager** | `manager@powermeat.co.za` | `Manager#2026` | Catalog CRUD, hamper builder, specials, orders pipeline, area delivery days schedule, and sales reports. |
-| **Counter Staff** | `counter@powermeat.co.za` | `Counter#2026` | Order processing, butcher scale weigh & adjust for per-kg items, mark ready for collection, capture walk-in/phone/WhatsApp orders. |
-| **Delivery Driver** | `driver@powermeat.co.za` | `Driver#2026` | Sees only their assigned town deliveries for the day. Can mark Out for Delivery / Delivered / Failed with notes, and record cash collected. |
+- Demo mode is **on** while developing (`npm run dev`) and **off** in a normal production build (`npm run build`). With it off, the staff sign-in page says it is switched off.
+- To show the demo on a hosted preview, build with `VITE_DEMO_MODE=true npm run build`. Do not do this for the real public shop.
+- In demo mode, sign in with any of these emails (no password), or tap a role on the sign-in page:
+
+| Role | Email | What they can do |
+|---|---|---|
+| **Owner** | `owner@powermeat.co.za` | Everything: products, prices, specials, settings, staff accounts, reports, deleting. |
+| **Store manager** | `manager@powermeat.co.za` | Products, hamper builder, specials, orders, delivery days, reports. |
+| **Counter staff** | `counter@powermeat.co.za` | Process orders, weigh and adjust per-kg items, capture walk-in / phone / WhatsApp orders. |
+| **Delivery driver** | `driver@powermeat.co.za` | Their own deliveries only: out for delivery, delivered or failed, cash collected. |
+
+Real staff accounts need Firebase Authentication connected (see section 4). The database rules in `firestore.rules` are already written and tested for that.
 
 ---
 
 ## 2. Key Features
 
 ### 2.1 Customer Storefront (`/`)
-- **Brand Identity:** High-contrast charcoal and Powermeat Red (`#D7141A`) with yellow starburst price badges (`#FFC400`).
+- **Brand Identity:** The Powermeat horn logo and red (`#D7141A`) with yellow price badges (`#FFC400`), on a warm off-white page with upright serif headings (Cormorant Garamond) and a clean sans for everything else (DM Sans).
 - **Navigate Drawer:** Top utility bar with cart count badge; black main header with "Navigate" outlined button opening a full-width slide-down drawer with expandable submenus for Hampers and Butchery cuts.
 - **Product Catalog & Detail View:** Square card grid (2 columns on mobile, 4 on desktop), "Image varies from product" overlay, "What's inside" hamper breakdown tabs, and 0.5kg quantity steppers for per-kg items with estimated totals and butcher scale weighing disclaimers.
 - **Free Delivery Guarantee:** Free delivery applies automatically to **any order containing a Family Hamper or Meat Combo**.
@@ -48,7 +54,7 @@ The platform includes seeded accounts for all 4 operational roles. You can sign 
 
 ## 3. Technology Stack
 
-- **Frontend:** React 19, TypeScript, Tailwind CSS v4, Lucide Icons, Motion.
+- **Frontend:** React 19, TypeScript, Tailwind CSS v4, Lucide Icons.
 - **Architecture:** Client-authoritative state store with resilient local storage persistence and full dual-mode Firebase integration ready for cloud deployment.
 - **Security:** ABAC role-based rules (`firestore.rules`), intermediate schema definition (`firebase-blueprint.json`), and comprehensive threat modeling (`security_spec.md`).
 
@@ -62,9 +68,12 @@ The platform includes seeded accounts for all 4 operational roles. You can sign 
 npm install
 
 # 2. Run unit tests (Pricing, delivery cut-offs, order numbers)
-npx tsx --test src/utils/pricing.test.ts src/utils/delivery.test.ts
+npm test
 
-# 3. Start development server on port 3000
+# 3. Run the database rule tests (needs Java; starts a local Firestore emulator)
+npm run test:rules
+
+# 4. Start development server on port 3000
 npm run dev
 ```
 
@@ -87,13 +96,14 @@ npm run build
   "appId": "..."
 }
 ```
-4. Deploy the production security rules:
+4. Deploy the production security rules (after `npm run test:rules` passes):
 ```bash
-firebase deploy --only firestore:rules
+npx firebase-tools deploy --only firestore:rules
 ```
+5. Hosting: `firebase.json` already sends the security headers (Content-Security-Policy, HSTS, nosniff, no framing, referrer and permissions policies). On Netlify or Cloudflare Pages the same headers come from `public/_headers`.
 
 ### How to Add New Staff Accounts
-1. Log in to `/admin` as the **Owner** (`owner@powermeat.co.za`).
+1. Sign in to `/admin` as the **Owner**.
 2. Navigate to **Staff Management** in the left sidebar.
 3. Click **+ Add Staff Account**.
 4. Enter their full name, email, cell phone, and select their operational role (Manager, Counter Staff, or Driver).

@@ -14,11 +14,17 @@
 
 ---
 
-## 2. The "Dirty Dozen" Threat Payloads (Blocked by Security Rules)
+## 2. Tested, not just written
+
+`tests/rules.test.mjs` runs 53 checks against the real rules in the Firestore emulator (`npm run test:rules`). Every payload below has a test, plus: orders that arrive already paid or confirmed, totals that do not add up, negative delivery fees, web pages disguised as proof of payment, `javascript:` product photos, customers with unverified emails, log entries written under someone else's name, deletes and role changes with a sign-in older than 8 hours, and collections the rules do not name.
+
+**Known limit:** rules cannot loop over an order's item list, so they check that the total equals subtotal plus delivery fee, but not each line price against the catalogue. Before taking online card payments, create orders through a server function that re-prices the cart from `/products`.
+
+## 3. The "Dirty Dozen" Threat Payloads (Blocked by Security Rules)
 
 1. **Payload 1 (Privilege Escalation on User Profile):**
-   A standard customer or counter staff writes `{ role: 'owner' }` to their `/staff/{uid}` document.
-   *Result:* Rejected by `isOwner()` gate on `/staff/{userId}`.
+   A customer or counter staff writes `{ role: 'owner' }` to their `/staff/{uid}` document.
+   *Result:* Rejected: only the Owner, signed in within the last 8 hours, can write `/staff/{userId}`.
 
 2. **Payload 2 (Anonymous Product Creation):**
    An unauthenticated client attempts to POST to `/products/hacked-cut` with price `0.01`.
@@ -33,8 +39,8 @@
    *Result:* Blocked by `affectedKeys().hasOnly(...)` constraints.
 
 5. **Payload 5 (Cross-Customer Order Scraping):**
-   An authenticated customer attempts `list` on `/orders` without staff credentials.
-   *Result:* Denied; client cannot read non-owned order documents.
+   An authenticated customer attempts `list` on `/orders`, or `get` on someone else's order.
+   *Result:* Denied. Only staff can list; a customer can read one order only when it carries their own verified email.
 
 6. **Payload 6 (Unauthorized Driver Tampering):**
    A driver attempts to edit customer name or pricing on an assigned order.

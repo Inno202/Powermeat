@@ -2,12 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny all access
+    // Anything not listed below is closed.
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Global reusable helpers
+    // ---------- Helpers ----------
     function isSignedIn() {
       return request.auth != null;
     }
@@ -24,7 +24,11 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Role lookups from /staff/{userId}
+    function changedKeys() {
+      return incoming().diff(existing()).affectedKeys();
+    }
+
+    // Roles come from /staff/{uid}, which only the Owner can write.
     function getStaffData() {
       return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data;
     }
@@ -40,87 +44,170 @@ service cloud.firestore {
     }
 
     function isManager() {
-      return isStaff() && (getStaffData().role == 'owner' || getStaffData().role == 'manager');
+      return isStaff() && getStaffData().role in ['owner', 'manager'];
     }
 
     function isCounter() {
-      return isStaff() && (getStaffData().role == 'owner' || getStaffData().role == 'manager' || getStaffData().role == 'counter');
+      return isStaff() && getStaffData().role in ['owner', 'manager', 'counter'];
     }
 
     function isDriver() {
       return isStaff() && getStaffData().role == 'driver';
     }
 
-    // 1. PRODUCTS COLLECTION
-    match /products/{productId} {
-      allow read: if true; // Public catalog browsing
-      allow create: if isManager() && isValidId(productId) &&
-        incoming().name is string && incoming().name.size() <= 150 &&
-        incoming().price is number && incoming().price >= 0;
-      allow update: if isManager() && isValidId(productId) &&
-        incoming().price is number && incoming().price >= 0;
-      allow delete: if isOwner() && isValidId(productId);
+    // Sensitive staff actions need a sign-in from the last 8 hours.
+    function recentSignIn() {
+      return request.auth.token.auth_time > request.time.toMillis() / 1000 - 28800;
     }
 
-    // 2. SPECIALS COLLECTION
+    function optionalString(data, key, max) {
+      return !(key in data) || (data[key] is string && data[key].size() <= max);
+    }
+
+    function isTerminal(status) {
+      return status in ['completed', 'cancelled'];
+    }
+
+    // ---------- 1. Products ----------
+    function validProduct() {
+      return incoming().keys().hasOnly([
+          'id', 'name', 'slug', 'category', 'subCategory', 'sku', 'description', 'pricingType',
+          'price', 'originalPrice', 'weightKg', 'isFreeDelivery', 'stockStatus', 'sortOrder',
+          'tags', 'imageUrl', 'images', 'hamperItems', 'options', 'isSpecial', 'specialLabel',
+          'specialEndDate']) &&
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 150 &&
+        incoming().category is string && incoming().category.size() <= 80 &&
+        incoming().sku is string && incoming().sku.size() <= 50 &&
+        optionalString(incoming(), 'description', 2000) &&
+        incoming().pricingType in ['fixed', 'per_kg', 'per_bag', 'per_bucket'] &&
+        incoming().stockStatus in ['in_stock', 'low_stock', 'out_of_stock', 'hidden'] &&
+        incoming().price is number && incoming().price >= 0 && incoming().price <= 1000000 &&
+        (!('imageUrl' in incoming()) ||
+          (incoming().imageUrl is string && incoming().imageUrl.size() <= 500 &&
+           incoming().imageUrl.matches('^https://.*')));
+    }
+
+    match /products/{productId} {
+      allow read: if true; // Public catalogue
+      allow create, update: if isManager() && isValidId(productId) && validProduct();
+      allow delete: if isOwner() && recentSignIn() && isValidId(productId);
+    }
+
+    // ---------- 2. Specials ----------
     match /specials/{specialId} {
       allow read: if true;
-      allow create, update: if isManager() && isValidId(specialId);
+      allow create, update: if isManager() && isValidId(specialId) &&
+        incoming().title is string && incoming().title.size() <= 150 &&
+        incoming().active is bool &&
+        incoming().productIds is list && incoming().productIds.size() <= 200;
       allow delete: if isOwner() && isValidId(specialId);
     }
 
-    // 3. ORDERS COLLECTION
+    // ---------- 3. Orders ----------
+    // NOTE: these rules check the shape and arithmetic of an order, but rules cannot
+    // loop over the item list to compare every line price with the catalogue. Before
+    // taking online payment, create orders through a server function that re-prices
+    // the cart from /products, and close `create` here.
+    function validNewOrder() {
+      return incoming().keys().hasOnly([
+          'id', 'customerName', 'customerCell', 'customerEmail', 'deliveryType', 'area',
+          'deliveryAddress', 'deliveryDate', 'items', 'subtotal', 'deliveryFee', 'total',
+          'paymentMethod', 'paymentStatus', 'orderStatus', 'source', 'notes', 'marketingOptIn',
+          'popUrl', 'createdAt', 'updatedAt']) &&
+        incoming().customerName is string && incoming().customerName.size() >= 2 &&
+          incoming().customerName.size() <= 120 &&
+        incoming().customerCell is string && incoming().customerCell.matches('^[0-9+ ]{9,30}$') &&
+        optionalString(incoming(), 'customerEmail', 254) &&
+        incoming().deliveryType in ['delivery', 'collection'] &&
+        incoming().area is string && incoming().area.size() <= 120 &&
+        optionalString(incoming(), 'deliveryAddress', 300) &&
+        incoming().deliveryDate is string && incoming().deliveryDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        incoming().items is list && incoming().items.size() >= 1 && incoming().items.size() <= 50 &&
+        incoming().subtotal is number && incoming().subtotal >= 0 &&
+        incoming().deliveryFee is number && incoming().deliveryFee >= 0 && incoming().deliveryFee <= 1000 &&
+        incoming().total is number &&
+          incoming().total >= incoming().subtotal + incoming().deliveryFee - 0.01 &&
+          incoming().total <= incoming().subtotal + incoming().deliveryFee + 0.01 &&
+        incoming().paymentMethod in ['cod', 'eft', 'online_card'] &&
+        // A customer can never mark their own order paid, confirmed or assigned.
+        incoming().paymentStatus == 'pending' &&
+        incoming().orderStatus == 'new' &&
+        incoming().source in ['web', 'whatsapp'] &&
+        optionalString(incoming(), 'notes', 500) &&
+        incoming().marketingOptIn is bool &&
+        // Proof of payment: a small photo or PDF only (about 2 MB once encoded).
+        (!('popUrl' in incoming()) ||
+          (incoming().popUrl is string && incoming().popUrl.size() <= 2900000 &&
+           incoming().popUrl.matches('^data:(image/(jpeg|png|webp)|application/pdf);base64,.*')));
+    }
+
     match /orders/{orderId} {
-      // Customers can create guest or authenticated orders
-      allow create: if isValidId(orderId) &&
-        incoming().customerName is string && incoming().customerName.size() <= 120 &&
-        incoming().customerCell is string && incoming().customerCell.size() <= 30 &&
-        incoming().total is number && incoming().total >= 0 &&
-        incoming().orderStatus == 'new';
+      allow create: if isValidId(orderId) && (validNewOrder() || isCounter());
 
-      // Reads: Staff can view all orders. Customers can read their own if authenticated.
-      allow read: if isStaff() || (isSignedIn() && existing().customerEmail == request.auth.token.email);
+      // Staff see orders; a customer sees only orders placed with their own verified email.
+      allow get: if isStaff() ||
+        (isSignedIn() && request.auth.token.email_verified == true &&
+         existing().customerEmail == request.auth.token.email);
+      allow list: if isStaff();
 
-      // Updates:
-      // - Counter / Manager / Owner can update status, mark paid, weigh & adjust
-      // - Assigned Driver can update status to out_for_delivery / completed / cancelled & record cash collected
-      allow update: if isStaff() && isValidId(orderId) && (
-        isCounter() ||
+      // Counter, manager, owner: process the order, but never rewrite who it belongs to.
+      // Finished or cancelled orders are locked for everyone except the Owner.
+      // Drivers: only their own assigned orders, only delivery outcome fields.
+      allow update: if isValidId(orderId) && (
+        isOwner() ||
+        (isCounter() && !isTerminal(existing().orderStatus) &&
+          changedKeys().hasOnly(['orderStatus', 'paymentStatus', 'paymentMethod', 'items', 'subtotal',
+            'total', 'weighAdjustReason', 'assignedDriverId', 'notes', 'updatedAt'])) ||
         (isDriver() && existing().assignedDriverId == request.auth.uid &&
-          incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus', 'cashCollected', 'driverNotes', 'paymentStatus', 'updatedAt']))
+          existing().orderStatus == 'out_for_delivery' &&
+          changedKeys().hasOnly(['orderStatus', 'cashCollected', 'driverNotes', 'paymentStatus', 'updatedAt']) &&
+          incoming().orderStatus in ['out_for_delivery', 'completed', 'cancelled'] &&
+          incoming().paymentStatus in ['pending', 'paid'] &&
+          optionalString(incoming(), 'driverNotes', 500))
       );
 
-      // Only Owner can delete an order record (e.g. test cleanup)
-      allow delete: if isOwner() && isValidId(orderId);
+      allow delete: if isOwner() && recentSignIn() && isValidId(orderId);
     }
 
-    // 4. STAFF COLLECTION
+    // ---------- 4. Staff ----------
     match /staff/{userId} {
-      allow read: if isSignedIn();
-      // Only Owner can create, edit roles or activate/deactivate staff accounts
-      allow create, update, delete: if isOwner() && isValidId(userId);
+      // Staff see the team; anyone else can only check their own record.
+      allow read: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+      // Only the Owner creates accounts, changes roles or (de)activates, after a recent sign-in.
+      allow create, update: if isOwner() && recentSignIn() && isValidId(userId) &&
+        incoming().role in ['owner', 'manager', 'counter', 'driver'] &&
+        incoming().active is bool &&
+        incoming().name is string && incoming().name.size() <= 120;
+      allow delete: if isOwner() && recentSignIn() && isValidId(userId) && request.auth.uid != userId;
     }
 
-    // 5. ACTIVITY LOGS (Append-only audit trail)
+    // ---------- 5. Activity log (append-only) ----------
     match /activity_logs/{logId} {
       allow read: if isStaff();
       allow create: if isStaff() && isValidId(logId) &&
-        incoming().userId is string &&
-        incoming().action is string &&
-        incoming().timestamp is string;
-      allow update, delete: if false; // Immutable audit log
+        incoming().keys().hasOnly(['id', 'userId', 'userName', 'userRole', 'action', 'details', 'timestamp']) &&
+        // Staff can only write entries under their own name.
+        incoming().userId == request.auth.uid &&
+        incoming().action is string && incoming().action.size() <= 80 &&
+        incoming().details is string && incoming().details.size() <= 1000 &&
+        incoming().timestamp is string && incoming().timestamp.size() <= 40;
+      allow update, delete: if false;
     }
 
-    // 6. SITE SETTINGS
+    // ---------- 6. Site settings ----------
     match /settings/{settingId} {
       allow read: if true; // Public store details
       allow write: if isOwner() && isValidId(settingId);
     }
 
-    // 7. DELIVERY AREAS
+    // ---------- 7. Delivery areas ----------
     match /delivery_areas/{areaId} {
       allow read: if true;
-      allow write: if isManager() && isValidId(areaId);
+      allow create, update: if isManager() && isValidId(areaId) &&
+        incoming().name is string && incoming().name.size() <= 120 &&
+        incoming().fee is number && incoming().fee >= 0 && incoming().fee <= 1000 &&
+        incoming().active is bool;
+      allow delete: if isOwner() && isValidId(areaId);
     }
   }
 }

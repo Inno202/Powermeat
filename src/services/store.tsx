@@ -49,7 +49,7 @@ interface StoreContextType {
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile | null) => void;
   loginAsDemoRole: (role: Role) => void;
-  loginWithEmail: (email: string) => boolean;
+  loginWithEmail: (email: string) => 'ok' | 'inactive' | 'failed';
   logout: () => void;
 
   // Cart
@@ -109,6 +109,26 @@ interface StoreContextType {
   resetAllData: () => void;
 }
 
+/** Demo sign-in (no passwords, browser-only data) is on while developing, or when a
+ *  build is made with VITE_DEMO_MODE=true. It is off in a normal production build. */
+export const DEMO_MODE: boolean =
+  (import.meta as any).env?.DEV === true || (import.meta as any).env?.VITE_DEMO_MODE === 'true';
+
+/** Reads saved JSON without crashing the site if it has been damaged or tampered with. */
+function loadSaved<T>(key: string, fallback: T): T {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return fallback;
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(fallback) !== Array.isArray(parsed) || parsed === null || typeof parsed !== 'object') {
+      return fallback;
+    }
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
+}
+
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
@@ -119,45 +139,26 @@ const STORAGE_KEYS = {
   AREAS: 'pm_areas_v1',
   SETTINGS: 'pm_settings_v1',
   LOGS: 'pm_logs_v1',
-  AUTH: 'pm_auth_user_v1',
+  AUTH: 'pm_auth_user_v2',
   CART: 'pm_cart_v1'
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial states from localStorage with seed fallbacks
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    return saved ? JSON.parse(saved) : SEED_PRODUCTS;
-  });
+  const [products, setProducts] = useState<Product[]>(() => loadSaved<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS));
 
-  const [specials, setSpecials] = useState<SpecialCampaign[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SPECIALS);
-    return saved ? JSON.parse(saved) : SEED_SPECIALS;
-  });
+  const [specials, setSpecials] = useState<SpecialCampaign[]>(() => loadSaved<SpecialCampaign[]>(STORAGE_KEYS.SPECIALS, SEED_SPECIALS));
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    return saved ? JSON.parse(saved) : SEED_ORDERS;
-  });
+  const [orders, setOrders] = useState<Order[]>(() => loadSaved<Order[]>(STORAGE_KEYS.ORDERS, SEED_ORDERS));
 
-  const [users, setUsers] = useState<UserProfile[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.USERS);
-    return saved ? JSON.parse(saved) : SEED_USERS;
-  });
+  const [users, setUsers] = useState<UserProfile[]>(() => loadSaved<UserProfile[]>(STORAGE_KEYS.USERS, SEED_USERS));
 
-  const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.AREAS);
-    return saved ? JSON.parse(saved) : SEED_DELIVERY_AREAS;
-  });
+  const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>(() => loadSaved<DeliveryArea[]>(STORAGE_KEYS.AREAS, SEED_DELIVERY_AREAS));
 
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return saved ? JSON.parse(saved) : SEED_SETTINGS;
-  });
+  const [settings, setSettings] = useState<SiteSettings>(() => loadSaved<SiteSettings>(STORAGE_KEYS.SETTINGS, SEED_SETTINGS));
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.LOGS);
-    return saved ? JSON.parse(saved) : [
+    return loadSaved<ActivityLog[]>(STORAGE_KEYS.LOGS, [
       {
         id: 'log-seed-1',
         userId: 'user-owner',
@@ -167,18 +168,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         details: 'Loaded Powermeat seed catalog and standard delivery zones',
         timestamp: new Date().toISOString()
       }
-    ];
+    ]);
   });
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
-    return saved ? JSON.parse(saved) : null;
+  // Only the signed-in staff id is remembered, never a whole profile, so a role cannot
+  // be granted by editing saved data. The profile is looked up fresh each time.
+  const [sessionUserId, setSessionUserId] = useState<string | null>(() => {
+    if (!DEMO_MODE) return null;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
+      return saved && saved.length <= 128 ? saved : null;
+    } catch {
+      return null;
+    }
   });
+  // A deactivated or removed account loses access immediately.
+  const currentUser = (DEMO_MODE && users.find(u => u.id === sessionUserId && u.active)) || null;
+  const setCurrentUser = (user: UserProfile | null) => setSessionUserId(user ? user.id : null);
 
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CART);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [cart, setCart] = useState<CartItem[]>(() => loadSaved<CartItem[]>(STORAGE_KEYS.CART, []));
 
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
@@ -213,24 +221,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [activityLogs]);
 
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(currentUser));
+    if (sessionUserId) {
+      localStorage.setItem(STORAGE_KEYS.AUTH, sessionUserId);
     } else {
       localStorage.removeItem(STORAGE_KEYS.AUTH);
     }
-  }, [currentUser]);
+  }, [sessionUserId]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
   }, [cart]);
 
   // Log activity helper
-  const logActivity = (action: string, details: string) => {
+  const logActivity = (action: string, details: string, actor: UserProfile | null = currentUser) => {
     const newLog: ActivityLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      userId: currentUser?.id || 'system',
-      userName: currentUser?.name || 'Customer/Guest',
-      userRole: currentUser?.role || 'counter',
+      userId: actor?.id || 'system',
+      userName: actor?.name || 'Customer/Guest',
+      userRole: actor?.role || 'counter',
       action,
       details,
       timestamp: new Date().toISOString()
@@ -240,26 +248,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Auth functions
   const loginAsDemoRole = (role: Role) => {
+    if (!DEMO_MODE) return;
     const found = users.find(u => u.role === role && u.active);
     if (found) {
       setCurrentUser(found);
-      logActivity('Staff Login', `${found.name} logged in as ${role.toUpperCase()}`);
+      logActivity('Staff Login', `${found.name} logged in as ${role.toUpperCase()}`, found);
     }
   };
 
-  const loginWithEmail = (email: string): boolean => {
+  const loginWithEmail = (email: string): 'ok' | 'inactive' | 'failed' => {
+    if (!DEMO_MODE) return 'failed';
     const clean = email.toLowerCase().trim();
     const found = users.find(u => u.email.toLowerCase() === clean);
-    if (found) {
-      if (!found.active) {
-        alert('This staff account has been deactivated. Please contact the Owner.');
-        return false;
-      }
-      setCurrentUser(found);
-      logActivity('Staff Login', `${found.name} logged in with ${email}`);
-      return true;
-    }
-    return false;
+    if (!found) return 'failed';
+    if (!found.active) return 'inactive';
+    setCurrentUser(found);
+    logActivity('Staff Login', `${found.name} logged in with ${found.email}`, found);
+    return 'ok';
   };
 
   const logout = () => {

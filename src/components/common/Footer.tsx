@@ -1,142 +1,104 @@
 import React from 'react';
-import { Phone, MessageCircle, MapPin, Clock, ShieldCheck, Heart } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, Clock } from 'lucide-react';
 import { Logo } from './Logo';
 import { useStore } from '../../services/store';
+import { whatsappLink, telLink } from '../../utils/contact';
 
 interface FooterProps {
   onNavigatePage: (page: string) => void;
   onNavigateCategory: (cat: string) => void;
 }
 
+const linkClass = 'min-h-[44px] inline-flex items-center text-left text-white/80 hover:text-white transition-colors';
+
 export const Footer: React.FC<FooterProps> = ({ onNavigatePage, onNavigateCategory }) => {
   const { settings } = useStore();
 
   return (
-    <footer className="bg-[#0D0D0D] text-neutral-300 border-t border-[#222222] pt-12 pb-24 sm:pb-12">
+    <footer className="bg-charcoal text-white/80 pt-16 pb-28 mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-          {/* Col 1: Brand & Bio */}
-          <div className="space-y-4">
-            <Logo size="md" />
-            <p className="text-sm text-neutral-400 leading-relaxed">
-              Powermeat is Welkom's trusted butchery for premium beef, pork, chicken, boerewors and bulk family hampers. Fresh quality cuts daily at unbeatable prices.
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+          <div>
+            <Logo size="md" showTagline onDark />
+            <p className="mt-5 text-sm">
+              Powermeat is Welkom's trusted butchery for premium beef, pork, chicken, boerewors and bulk family
+              hampers. Fresh quality cuts daily at unbeatable prices.
             </p>
-            <div className="pt-2">
-              <span className="inline-block bg-[#D7141A]/20 border border-[#D7141A]/50 text-[#FFC400] text-xs px-3 py-1.5 rounded font-extrabold italic">
-                "{settings.tagline}"
-              </span>
-            </div>
           </div>
 
-          {/* Col 2: Hampers & Quick Links */}
-          <div>
-            <h4 className="text-white font-heading text-lg font-bold uppercase tracking-wider mb-4 border-b border-[#262626] pb-2">
-              Popular Hampers
-            </h4>
-            <ul className="space-y-2 text-sm">
-              {['Meat Combos', 'Family Hampers', 'Continental Hampers', 'SASSA Hamper', 'Beke Le Beke', 'Bulk Meat'].map(cat => (
-                <li key={cat}>
-                  <button
-                    onClick={() => onNavigateCategory(cat)}
-                    className="hover:text-[#D7141A] transition-colors text-left cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span className="text-[#D7141A] text-xs">▸</span>
-                    <span>{cat}</span>
-                  </button>
-                </li>
-              ))}
+          <nav aria-label="Shop">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-white mb-3">Shop</h2>
+            <ul>
+              {['Meat Combos', 'Family Hampers', 'Continental Hampers', 'SASSA Hamper', 'Beke Le Beke', 'Bulk Meat'].map(
+                cat => (
+                  <li key={cat}>
+                    <button type="button" onClick={() => onNavigateCategory(cat)} className={linkClass}>
+                      {cat}
+                    </button>
+                  </li>
+                )
+              )}
             </ul>
-          </div>
+          </nav>
 
-          {/* Col 3: Trading Hours & Areas */}
           <div>
-            <h4 className="text-white font-heading text-lg font-bold uppercase tracking-wider mb-4 border-b border-[#262626] pb-2">
-              Trading Hours
-            </h4>
-            <div className="space-y-2 text-sm text-neutral-400">
-              <div className="flex items-start gap-2">
-                <Clock size={16} className="text-[#D7141A] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white font-semibold">Mon – Fri:</p>
-                  <p>07:30 – 17:30</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 pt-1">
-                <Clock size={16} className="text-[#D7141A] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white font-semibold">Saturday:</p>
-                  <p>07:30 – 14:00</p>
-                </div>
-              </div>
-              <div className="pt-2 text-xs text-neutral-400">
-                <p><strong className="text-white">Delivery Areas:</strong> Welkom, Thabong, Bronville, Riebeekstad, Virginia, Odendaalsrus, Theunissen / Bloemfontein, Kroonstad.</p>
-              </div>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-white mb-3">Trading hours</h2>
+            <div className="num text-sm flex items-start gap-2.5">
+              <Clock size={18} className="shrink-0 mt-0.5 text-brand-yellow" />
+              <ul>
+                <li>{settings.tradingHours.weekdays}</li>
+                <li>{settings.tradingHours.saturday}</li>
+                <li>{settings.tradingHours.sunday}</li>
+              </ul>
             </div>
+            <p className="mt-4 text-sm">
+              We deliver to Welkom, Thabong, Bronville, Riebeekstad, Virginia, Odendaalsrus, Theunissen / Bloemfontein
+              and Kroonstad.
+            </p>
           </div>
 
-          {/* Col 4: Contact & Direct Butchery Lines */}
           <div>
-            <h4 className="text-white font-heading text-lg font-bold uppercase tracking-wider mb-4 border-b border-[#262626] pb-2">
-              Butchery Contact
-            </h4>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-2.5">
-                <MapPin size={17} className="text-[#D7141A] shrink-0 mt-0.5" />
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-white mb-3">Contact</h2>
+            <ul className="num text-sm">
+              <li className="flex items-start gap-2.5 py-2">
+                <MapPin size={18} className="shrink-0 mt-0.5 text-brand-yellow" />
                 <span>{settings.address}</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Phone size={17} className="text-[#D7141A] shrink-0" />
-                <a href={`tel:${settings.phone1.replace(/\s+/g, '')}`} className="hover:text-white transition">
-                  {settings.phone1} / {settings.phone2}
+              </li>
+              <li className="flex items-center gap-2.5">
+                <Phone size={18} className="shrink-0 text-brand-yellow" />
+                <span className="flex flex-wrap gap-x-2">
+                  <a href={telLink(settings.phone1)} className={linkClass}>
+                    {settings.phone1}
+                  </a>
+                  <a href={telLink(settings.phone2)} className={linkClass}>
+                    {settings.phone2}
+                  </a>
+                </span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <MessageCircle size={18} className="shrink-0 text-brand-yellow" />
+                <a href={whatsappLink(settings.whatsapp)} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                  WhatsApp {settings.whatsapp}
                 </a>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <MessageCircle size={17} className="text-[#25D366] shrink-0" />
-                <a
-                  href={`https://wa.me/27${settings.whatsapp.replace(/^0/, '').replace(/\s+/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-emerald-400 transition"
-                >
-                  WhatsApp: {settings.whatsapp}
-                </a>
-              </div>
-              <div className="pt-3">
-                <button
-                  onClick={() => onNavigatePage('admin')}
-                  className="w-full bg-[#1F1F1F] hover:bg-[#2A2A2A] text-neutral-300 hover:text-white border border-[#333] text-xs font-semibold py-2 px-3 rounded flex items-center justify-center gap-1.5 transition cursor-pointer"
-                >
-                  <ShieldCheck size={14} className="text-[#D7141A]" />
-                  <span>Central Admin & Staff Login</span>
-                </button>
-              </div>
-            </div>
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* Bottom bar with POPIA, copyright, disclaimer */}
-        <div className="border-t border-[#1F1F1F] pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
-          <p>© {new Date().getFullYear()} Powermeat Welkom. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => onNavigatePage('privacy')}
-              className="hover:text-neutral-300 underline cursor-pointer"
-            >
+        <div className="border-t border-white/15 pt-6 flex flex-col md:flex-row md:items-center justify-between text-sm gap-2">
+          <p className="num">© {new Date().getFullYear()} Powermeat Welkom. All rights reserved.</p>
+          <div className="flex flex-wrap items-center gap-x-6">
+            <button type="button" onClick={() => onNavigatePage('privacy')} className={linkClass}>
               Privacy Policy (POPIA)
             </button>
-            <span>•</span>
-            <button
-              onClick={() => onNavigatePage('delivery_areas')}
-              className="hover:text-neutral-300 underline cursor-pointer"
-            >
+            <button type="button" onClick={() => onNavigatePage('delivery_areas')} className={linkClass}>
               Delivery Terms
             </button>
-            <span>•</span>
-            <button
-              onClick={() => onNavigatePage('wholesale')}
-              className="hover:text-neutral-300 underline cursor-pointer"
-            >
+            <button type="button" onClick={() => onNavigatePage('wholesale')} className={linkClass}>
               Wholesale
+            </button>
+            <button type="button" onClick={() => onNavigatePage('admin')} className={linkClass}>
+              Staff sign in
             </button>
           </div>
         </div>

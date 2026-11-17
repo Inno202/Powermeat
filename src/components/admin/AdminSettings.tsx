@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, Save, CreditCard, Store, Bell, CheckCircle2 } from 'lucide-react';
+import { confirmAction, toast } from '../ui/feedback';
 import { useStore } from '../../services/store';
 
 export const AdminSettings: React.FC = () => {
@@ -40,150 +41,150 @@ export const AdminSettings: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h2 className="text-2xl font-heading font-extrabold uppercase text-white tracking-wide">
+        <h2 className="display text-3xl">
           Store & System Settings (Owner Only)
         </h2>
-        <p className="text-xs text-neutral-400 mt-0.5">
+        <p className="text-sm text-ink-soft mt-0.5">
           Configure butchery identity, telephone lines, WhatsApp number, and online gateway toggles.
         </p>
       </div>
 
       {savedSuccess && (
-        <div className="p-3 bg-emerald-950 border border-emerald-800 text-emerald-200 text-xs rounded-xl flex items-center gap-2">
-          <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-emerald-800 shrink-0" />
           <span>Store settings successfully updated and broadcast to public site.</span>
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-[#1A1A1A] rounded-2xl border border-[#2D2D2D] p-6 space-y-6 text-xs">
+      <form onSubmit={handleSave} className="bg-white rounded-2xl border border-ink/10 p-6 space-y-6 text-sm">
         {/* Butchery Details */}
         <div className="space-y-4">
-          <h3 className="font-heading font-bold text-base uppercase text-white tracking-wider flex items-center gap-2 border-b border-[#2B2B2B] pb-2">
-            <Store size={18} className="text-[#D7141A]" />
+          <h3 className="display flex items-center gap-2 border-b border-ink/10 pb-2 text-2xl">
+            <Store size={18} className="text-brand-accent-deep" />
             <span>Butchery Brand & Storefront</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="font-bold text-neutral-300 block mb-1">Business Name</label>
+              <label className="field-label">Business Name</label>
               <input
                 type="text"
                 value={businessName}
                 onChange={e => setBusinessName(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white"
+                className="field w-full"
               />
             </div>
 
             <div>
-              <label className="font-bold text-neutral-300 block mb-1">Brand Tagline</label>
+              <label className="field-label">Brand Tagline</label>
               <input
                 type="text"
                 value={tagline}
                 onChange={e => setTagline(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white"
+                className="field w-full"
               />
             </div>
           </div>
 
           <div>
-            <label className="font-bold text-neutral-300 block mb-1">Physical Store Address</label>
+            <label className="field-label">Physical Store Address</label>
             <input
               type="text"
               value={address}
               onChange={e => setAddress(e.target.value)}
-              className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white"
+              className="field w-full"
             />
           </div>
         </div>
 
         {/* Contact Numbers */}
-        <div className="space-y-4 pt-4 border-t border-[#2B2B2B]">
-          <h3 className="font-heading font-bold text-base uppercase text-white tracking-wider">
+        <div className="space-y-4 pt-4 border-t border-ink/10">
+          <h3 className="display text-2xl">
             Contact & WhatsApp Lines
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="font-bold text-neutral-300 block mb-1">WhatsApp Orders Number</label>
+              <label className="field-label">WhatsApp Orders Number</label>
               <input
                 type="text"
                 value={whatsapp}
                 onChange={e => setWhatsapp(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white font-mono"
+                className="field w-full num"
               />
             </div>
 
             <div>
-              <label className="font-bold text-neutral-300 block mb-1">Landline 1</label>
+              <label className="field-label">Landline 1</label>
               <input
                 type="text"
                 value={phone1}
                 onChange={e => setPhone1(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white font-mono"
+                className="field w-full num"
               />
             </div>
 
             <div>
-              <label className="font-bold text-neutral-300 block mb-1">Landline 2</label>
+              <label className="field-label">Landline 2</label>
               <input
                 type="text"
                 value={phone2}
                 onChange={e => setPhone2(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white font-mono"
+                className="field w-full num"
               />
             </div>
           </div>
         </div>
 
         {/* Banner Texts */}
-        <div className="space-y-4 pt-4 border-t border-[#2B2B2B]">
-          <h3 className="font-heading font-bold text-base uppercase text-white tracking-wider flex items-center gap-2">
-            <Bell size={18} className="text-[#FFC400]" />
+        <div className="space-y-4 pt-4 border-t border-ink/10">
+          <h3 className="display flex items-center gap-2 text-2xl">
+            <Bell size={18} className="text-brand-yellow-deep" />
             <span>Store Announcements & Hero Banner</span>
           </h3>
 
           <div>
-            <label className="font-bold text-neutral-300 block mb-1">Announcement Bar Text</label>
+            <label className="field-label">Announcement Bar Text</label>
             <input
               type="text"
               value={announcementText}
               onChange={e => setAnnouncementText(e.target.value)}
-              className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white"
+              className="field w-full"
             />
           </div>
 
           <div>
-            <label className="font-bold text-neutral-300 block mb-1">Hero Title</label>
+            <label className="field-label">Hero Title</label>
             <input
               type="text"
               value={heroTitle}
               onChange={e => setHeroTitle(e.target.value)}
-              className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white font-display text-base"
+              className="field w-full"
             />
           </div>
 
           <div>
-            <label className="font-bold text-neutral-300 block mb-1">Hero Subtitle</label>
+            <label className="field-label">Hero Subtitle</label>
             <textarea
               rows={2}
               value={heroSubtitle}
               onChange={e => setHeroSubtitle(e.target.value)}
-              className="w-full bg-neutral-900 border border-[#3E3E3E] rounded-lg p-2.5 text-white"
+              className="field w-full"
             />
           </div>
         </div>
 
         {/* Online Payment Gateway Toggle */}
-        <div className="space-y-4 pt-4 border-t border-[#2B2B2B]">
-          <h3 className="font-heading font-bold text-base uppercase text-white tracking-wider flex items-center gap-2">
-            <CreditCard size={18} className="text-emerald-400" />
+        <div className="space-y-4 pt-4 border-t border-ink/10">
+          <h3 className="display flex items-center gap-2 text-2xl">
+            <CreditCard size={18} className="text-emerald-800" />
             <span>Online Card Payments (PayFast / Yoco)</span>
           </h3>
 
-          <div className="p-4 bg-neutral-950 rounded-xl border border-neutral-800 flex items-center justify-between">
+          <div className="p-4 bg-paper rounded-xl border border-ink/10 flex items-center justify-between">
             <div>
-              <strong className="text-white text-sm block">Enable Online Card Payment Gateway</strong>
-              <p className="text-neutral-400 text-[11px] mt-0.5">
+              <strong className="text-ink text-sm block">Enable Online Card Payment Gateway</strong>
+              <p className="text-ink-soft text-sm mt-0.5">
                 Switched off by default. When enabled, customers can pay via PayFast/Yoco card checkout at step 5.
               </p>
             </div>
@@ -195,27 +196,34 @@ export const AdminSettings: React.FC = () => {
                 onChange={e => setOnlinePaymentEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D7141A]"></div>
+              <div className="w-11 h-6 bg-sand peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-accent"></div>
             </label>
           </div>
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t border-[#2B2B2B]">
+        <div className="flex justify-between items-center pt-4 border-t border-ink/10">
           <button
             type="button"
-            onClick={() => {
-              if (confirm('Reset all demo data back to factory seeds? This resets products, orders and demo users.')) {
+            onClick={async () => {
+              const ok = await confirmAction({
+                title: 'Reset all demo data?',
+                message: 'Products, orders and demo staff go back to the starting examples. This cannot be undone.',
+                confirmLabel: 'Reset demo data',
+                tone: 'danger'
+              });
+              if (ok) {
                 resetAllData();
+                toast('Demo data reset');
               }
             }}
-            className="text-neutral-500 hover:text-red-400 text-xs underline cursor-pointer"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-ink-soft hover:text-red-800 text-sm underline cursor-pointer"
           >
             Reset Demo Data to Seed
           </button>
 
           <button
             type="submit"
-            className="bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition cursor-pointer"
+            className="btn btn-sm btn-accent"
           >
             <Save size={15} />
             <span>Save Store Settings</span>

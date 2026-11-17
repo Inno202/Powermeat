@@ -66,46 +66,46 @@ export const AdminSpecials: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-extrabold uppercase text-white tracking-wide">
+          <h2 className="display text-3xl">
             Specials & Promotion Campaigns
           </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <p className="text-sm text-ink-soft mt-0.5">
             Automated promotional campaigns, timed expiry, and one-click campaign re-running.
           </p>
         </div>
 
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+          className="btn btn-sm btn-accent"
         >
           <Plus size={15} />
-          <span>+ Create Special</span>
+          <span>Create Special</span>
         </button>
       </div>
 
       {/* Tabs: Active vs Archived */}
-      <div className="flex border-b border-[#2D2D2D] gap-4">
+      <div className="flex border-b border-ink/10 gap-4">
         <button
           onClick={() => setActiveTab('active')}
-          className={`pb-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+          className={`min-h-[44px] min-w-[44px] pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
             activeTab === 'active'
-              ? 'border-[#D7141A] text-white'
-              : 'border-transparent text-neutral-400 hover:text-neutral-200'
+              ? 'border-brand-accent text-ink'
+              : 'border-transparent text-ink-soft hover:text-ink'
           }`}
         >
-          <Flame size={15} className="text-[#D7141A]" />
+          <Flame size={15} className="text-brand-accent-deep" />
           <span>Active Campaigns ({activeSpecials.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('archived')}
-          className={`pb-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+          className={`min-h-[44px] min-w-[44px] pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
             activeTab === 'archived'
-              ? 'border-[#FFC400] text-white'
-              : 'border-transparent text-neutral-400 hover:text-neutral-200'
+              ? 'border-brand-yellow text-ink'
+              : 'border-transparent text-ink-soft hover:text-ink'
           }`}
         >
-          <Archive size={15} className="text-[#FFC400]" />
+          <Archive size={15} className="text-brand-yellow-deep" />
           <span>Expired / Archived ({archivedSpecials.length})</span>
         </button>
       </div>
@@ -118,37 +118,37 @@ export const AdminSpecials: React.FC = () => {
           return (
             <div
               key={special.id}
-              className="bg-[#1A1A1A] rounded-2xl border border-[#2D2D2D] p-5 shadow-lg flex flex-col justify-between space-y-4"
+              className="p-5 flex flex-col justify-between space-y-4 panel"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="bg-[#D7141A] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded">
+                    <span className="bg-brand-accent text-white text-sm font-bold px-2 py-0.5 rounded">
                       {special.label}
                     </span>
-                    <h3 className="text-lg font-heading font-bold text-white uppercase mt-1">
+                    <h3 className="display mt-1 text-2xl">
                       {special.title}
                     </h3>
                   </div>
 
                   <span
-                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                    className={`text-sm font-bold px-2 py-0.5 rounded ${
                       special.active
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-sand text-ink-soft'
                     }`}
                   >
                     {special.active ? 'Active' : 'Expired / Archived'}
                   </span>
                 </div>
 
-                <p className="text-xs text-neutral-400 mt-2">
+                <p className="text-sm text-ink-soft mt-2">
                   {special.description || 'Special butchery cut pricing and hamper savings.'}
                 </p>
 
-                <div className="mt-3 pt-3 border-t border-[#2A2A2A] text-xs text-neutral-400 space-y-1">
+                <div className="mt-3 pt-3 border-t border-ink/10 text-sm text-ink-soft space-y-1">
                   <div className="flex items-center gap-2">
-                    <Calendar size={13} className="text-[#FFC400]" />
+                    <Calendar size={13} className="text-brand-yellow-deep" />
                     <span>
                       Start: {new Date(special.startDate).toLocaleDateString()}
                     </span>
@@ -159,15 +159,15 @@ export const AdminSpecials: React.FC = () => {
                 </div>
 
                 {/* Products attached to this special */}
-                <div className="mt-3 pt-2 border-t border-[#2A2A2A]">
-                  <span className="text-[11px] font-bold text-neutral-300 block mb-1">
+                <div className="mt-3 pt-2 border-t border-ink/10">
+                  <span className="text-sm font-bold text-ink-soft block mb-1">
                     Promotional Products ({matchedProducts.length}):
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {matchedProducts.map(p => (
                       <span
                         key={p.id}
-                        className="bg-neutral-900 border border-[#333] text-neutral-200 text-[10px] px-2 py-0.5 rounded font-mono"
+                        className="bg-white border border-ink/10 text-ink text-sm px-2 py-0.5 rounded num"
                       >
                         {p.name} ({formatZAR(p.price)})
                       </span>
@@ -177,11 +177,11 @@ export const AdminSpecials: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-[#2A2A2A] flex items-center justify-between">
+              <div className="pt-3 border-t border-ink/10 flex items-center justify-between">
                 {special.active ? (
                   <button
                     onClick={() => updateSpecial(special.id, { active: false })}
-                    className="text-xs text-neutral-400 hover:text-red-400 font-bold transition cursor-pointer"
+                    className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-sm text-ink-soft hover:text-red-800 font-bold transition cursor-pointer"
                   >
                     Archive / End Now
                   </button>
@@ -191,7 +191,7 @@ export const AdminSpecials: React.FC = () => {
                       setRerunModalSpecial(special);
                       setRerunStartDate(new Date().toISOString().split('T')[0]);
                     }}
-                    className="bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                    className="btn btn-sm btn-accent"
                   >
                     <RotateCcw size={14} />
                     <span>Re-Run Campaign</span>
@@ -206,37 +206,37 @@ export const AdminSpecials: React.FC = () => {
       {/* CREATE SPECIAL MODAL */}
       {isCreateOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setIsCreateOpen(false)}
         >
           <div
-            className="w-full max-w-lg bg-neutral-900 text-white rounded-2xl border border-neutral-700 p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto"
+            className="w-full max-w-lg text-ink p-6 space-y-4 max-h-[85vh] overflow-y-auto panel"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="font-heading text-lg font-bold uppercase text-white">
+            <h3 className="display text-2xl">
               Create Promotional Special
             </h3>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateSubmit} className="space-y-4 text-sm">
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">Campaign Title *</label>
+                <label className="field-label">Campaign Title *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. November Month End Special"
                   value={formTitle}
                   onChange={e => setFormTitle(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-white text-sm"
+                  className="field w-full"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Badge Ribbon Label</label>
+                  <label className="field-label">Badge Ribbon Label</label>
                   <select
                     value={formLabel}
                     onChange={e => setFormLabel(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                    className="field w-full"
                   >
                     <option value="Month End Special">Month End Special</option>
                     <option value="While Stock Lasts">While Stock Lasts</option>
@@ -246,37 +246,37 @@ export const AdminSpecials: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Start Date</label>
+                  <label className="field-label">Start Date</label>
                   <input
                     type="date"
                     required
                     value={formStartDate}
                     onChange={e => setFormStartDate(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                    className="field w-full"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">
+                <label className="field-label">
                   End Date (Leave blank for "While Stock Lasts")
                 </label>
                 <input
                   type="date"
                   value={formEndDate}
                   onChange={e => setFormEndDate(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 />
               </div>
 
               {/* Attach Products */}
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">
+                <label className="field-label">
                   Select Products to Include:
                 </label>
-                <div className="bg-neutral-950 p-3 rounded-lg border border-neutral-800 max-h-40 overflow-y-auto space-y-1">
+                <div className="bg-paper p-3 rounded-lg border border-ink/10 max-h-40 overflow-y-auto space-y-1">
                   {products.map(p => (
-                    <label key={p.id} className="flex items-center gap-2 p-1 hover:bg-neutral-900 rounded cursor-pointer">
+                    <label key={p.id} className="flex items-center gap-2 p-1 hover:bg-white rounded cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formProductIds.includes(p.id)}
@@ -287,21 +287,21 @@ export const AdminSpecials: React.FC = () => {
                             setFormProductIds(prev => prev.filter(id => id !== p.id));
                           }
                         }}
-                        className="rounded bg-neutral-900 border-neutral-700 text-[#D7141A]"
+                        className="rounded bg-white border-ink/10 text-brand-accent-deep"
                       />
-                      <span className="text-white text-xs">{p.name} ({formatZAR(p.price)})</span>
+                      <span className="text-ink text-sm">{p.name} ({formatZAR(p.price)})</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">Promo Description</label>
+                <label className="field-label">Promo Description</label>
                 <textarea
                   rows={2}
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 />
               </div>
 
@@ -309,13 +309,13 @@ export const AdminSpecials: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg cursor-pointer font-bold"
+                  className="btn btn-sm btn-outline"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#D7141A] hover:bg-[#ba0f14] text-white rounded-lg cursor-pointer font-bold"
+                  className="btn btn-sm btn-accent"
                 >
                   Create & Launch
                 </button>
@@ -328,41 +328,41 @@ export const AdminSpecials: React.FC = () => {
       {/* RE-RUN CAMPAIGN MODAL */}
       {rerunModalSpecial && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setRerunModalSpecial(null)}
         >
           <div
-            className="w-full max-w-md bg-neutral-900 text-white rounded-2xl border border-neutral-700 p-6 shadow-2xl space-y-4"
+            className="w-full max-w-md text-ink p-6 space-y-4 panel"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="font-heading text-lg font-bold uppercase text-white flex items-center gap-2">
-              <RotateCcw size={18} className="text-[#FFC400]" />
+            <h3 className="display flex items-center gap-2 text-2xl">
+              <RotateCcw size={18} className="text-brand-yellow-deep" />
               <span>Re-Run Campaign: {rerunModalSpecial.title}</span>
             </h3>
 
-            <p className="text-xs text-neutral-300">
+            <p className="text-sm text-ink-soft">
               Set new dates to bring this archived promotional special back to life on the homepage carousel.
             </p>
 
-            <form onSubmit={handleRerunSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleRerunSubmit} className="space-y-4 text-sm">
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">New Start Date</label>
+                <label className="field-label">New Start Date</label>
                 <input
                   type="date"
                   required
                   value={rerunStartDate}
                   onChange={e => setRerunStartDate(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">New End Date (Optional)</label>
+                <label className="field-label">New End Date (Optional)</label>
                 <input
                   type="date"
                   value={rerunEndDate}
                   onChange={e => setRerunEndDate(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 />
               </div>
 
@@ -370,13 +370,13 @@ export const AdminSpecials: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRerunModalSpecial(null)}
-                  className="px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg cursor-pointer font-bold"
+                  className="btn btn-sm btn-outline"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#D7141A] hover:bg-[#ba0f14] text-white rounded-lg cursor-pointer font-bold"
+                  className="btn btn-sm btn-accent"
                 >
                   Re-Activate Special
                 </button>

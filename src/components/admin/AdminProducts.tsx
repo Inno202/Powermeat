@@ -13,6 +13,8 @@ import {
   Check,
   X
 } from 'lucide-react';
+import { confirmAction, toast } from '../ui/feedback';
+import { safeImageUrl } from '../../utils/validate';
 import { useStore } from '../../services/store';
 import { Product, PricingType, StockStatus, HamperItem } from '../../types';
 import { formatZAR, calcPricePerKg, applyBulkPriceUpdate } from '../../utils/pricing';
@@ -176,7 +178,7 @@ export const AdminProducts: React.FC = () => {
       stockStatus: formStockStatus,
       sortOrder: formSortOrder,
       tags: tagArray,
-      imageUrl: formImageUrl.trim() || undefined,
+      imageUrl: safeImageUrl(formImageUrl),
       hamperItems: formHamperItems.length > 0 ? formHamperItems : undefined
     };
 
@@ -193,10 +195,10 @@ export const AdminProducts: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-extrabold uppercase text-white tracking-wide">
+          <h2 className="display text-3xl">
             Product & Hamper Management
           </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <p className="text-sm text-ink-soft mt-0.5">
             Manage butchery hampers, meat cuts, pricing types, stock statuses and bulk price updates.
           </p>
         </div>
@@ -205,7 +207,7 @@ export const AdminProducts: React.FC = () => {
           {/* Bulk Price Update Button */}
           <button
             onClick={() => setIsBulkModalOpen(true)}
-            className="bg-neutral-800 hover:bg-neutral-700 text-[#FFC400] border border-[#3E3E3E] text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+            className="btn btn-sm btn-outline"
           >
             <TrendingUp size={15} />
             <span>Bulk Price Update</span>
@@ -214,10 +216,10 @@ export const AdminProducts: React.FC = () => {
           {/* Add Product */}
           <button
             onClick={handleOpenCreate}
-            className="bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+            className="btn btn-sm btn-accent"
           >
             <Plus size={15} />
-            <span>+ Add Product</span>
+            <span>Add Product</span>
           </button>
         </div>
       </div>
@@ -229,10 +231,10 @@ export const AdminProducts: React.FC = () => {
             <button
               key={cat}
               onClick={() => setActiveCategoryFilter(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+              className={`btn btn-sm shrink-0 whitespace-nowrap transition cursor-pointer ${
                 activeCategoryFilter === cat
-                  ? 'bg-[#D7141A] text-white'
-                  : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
+                  ? 'bg-brand-accent text-white'
+                  : 'btn-outline'
               }`}
             >
               {cat}
@@ -245,15 +247,15 @@ export const AdminProducts: React.FC = () => {
           placeholder="Search products or SKU..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="bg-neutral-900 border border-[#333] rounded-lg px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A] w-full sm:w-64"
+          className="field w-full sm:w-64"
         />
       </div>
 
       {/* Products Table */}
-      <div className="bg-[#1A1A1A] rounded-2xl border border-[#2D2D2D] overflow-hidden shadow-xl">
+      <div className="overflow-hidden panel">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#141414] text-neutral-400 uppercase font-bold text-[11px] border-b border-[#2D2D2D]">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-paper text-ink-soft font-bold text-sm border-b border-ink/10">
               <tr>
                 <th className="py-3.5 px-4">Item</th>
                 <th className="py-3.5 px-4">Category & SKU</th>
@@ -264,27 +266,27 @@ export const AdminProducts: React.FC = () => {
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#262626]">
+            <tbody className="divide-y divide-ink/10">
               {filteredProducts.map(p => {
                 const perKg = calcPricePerKg(p.price, p.weightKg);
 
                 return (
-                  <tr key={p.id} className="hover:bg-neutral-800/40 transition">
+                  <tr key={p.id} className="hover:bg-sand/40 transition">
                     {/* Item */}
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-neutral-900 overflow-hidden shrink-0 border border-[#333]">
+                      <div className="w-12 h-12 rounded-lg bg-white overflow-hidden shrink-0 border border-ink/10">
                         {p.imageUrl ? (
                           <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-[#D7141A] font-bold">
+                          <div className="w-full h-full flex items-center justify-center text-sm text-brand-accent-deep font-bold">
                             PM
                           </div>
                         )}
                       </div>
                       <div>
-                        <strong className="text-white text-sm block">{p.name}</strong>
+                        <strong className="text-ink text-sm block">{p.name}</strong>
                         {p.isFreeDelivery && (
-                          <span className="text-[9px] uppercase font-bold text-emerald-400">
+                          <span className="text-sm font-bold text-emerald-800">
                             Free Delivery
                           </span>
                         )}
@@ -293,24 +295,24 @@ export const AdminProducts: React.FC = () => {
 
                     {/* Category & SKU */}
                     <td className="py-3 px-4">
-                      <span className="text-neutral-300 block font-semibold">{p.category}</span>
-                      <span className="text-neutral-500 font-mono text-[10px]">{p.sku}</span>
+                      <span className="text-ink-soft block font-semibold">{p.category}</span>
+                      <span className="text-ink-soft num text-sm">{p.sku}</span>
                     </td>
 
                     {/* Pricing Type */}
                     <td className="py-3 px-4">
-                      <span className="bg-neutral-800 text-neutral-300 uppercase text-[10px] px-2 py-0.5 rounded font-mono">
+                      <span className="bg-sand text-ink-soft text-sm px-2 py-0.5 rounded num">
                         {p.pricingType.replace(/_/g, ' ')}
                       </span>
                     </td>
 
                     {/* Price */}
                     <td className="py-3 px-4">
-                      <span className="font-extrabold text-[#FFC400] text-sm block">
+                      <span className="font-bold text-brand-yellow-deep text-sm block">
                         {formatZAR(p.price)}
                       </span>
                       {p.originalPrice && (
-                        <span className="line-through text-neutral-500 text-[10px]">
+                        <span className="line-through text-ink-soft text-sm">
                           {formatZAR(p.originalPrice)}
                         </span>
                       )}
@@ -318,23 +320,23 @@ export const AdminProducts: React.FC = () => {
 
                     {/* Weight & Per-Kg */}
                     <td className="py-3 px-4">
-                      <span className="text-white font-semibold block">
+                      <span className="text-ink font-semibold block">
                         {p.weightKg ? `${p.weightKg}kg` : '-'}
                       </span>
-                      {perKg && <span className="text-[#FFC400] text-[10px] font-bold">{perKg}</span>}
+                      {perKg && <span className="text-brand-yellow-deep text-sm font-bold">{perKg}</span>}
                     </td>
 
                     {/* Stock Status */}
                     <td className="py-3 px-4">
                       <span
-                        className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded ${
+                        className={`text-sm font-bold px-2 py-0.5 rounded ${
                           p.stockStatus === 'in_stock'
-                            ? 'bg-emerald-950 text-emerald-300'
+                            ? 'bg-emerald-50 text-emerald-800'
                             : p.stockStatus === 'low_stock'
-                            ? 'bg-amber-950 text-amber-300'
+                            ? 'bg-amber-50 text-amber-800'
                             : p.stockStatus === 'out_of_stock'
-                            ? 'bg-red-950 text-red-300'
-                            : 'bg-neutral-800 text-neutral-500'
+                            ? 'bg-red-50 text-red-800'
+                            : 'bg-sand text-ink-soft'
                         }`}
                       >
                         {p.stockStatus.replace(/_/g, ' ')}
@@ -348,7 +350,7 @@ export const AdminProducts: React.FC = () => {
                         <button
                           onClick={() => duplicateProduct(p.id)}
                           title="Duplicate Hamper (Quick Clone)"
-                          className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded cursor-pointer transition"
+                          className="icon-btn bg-sand hover:bg-sand text-ink-soft cursor-pointer transition"
                         >
                           <Copy size={14} />
                         </button>
@@ -357,7 +359,7 @@ export const AdminProducts: React.FC = () => {
                         <button
                           onClick={() => handleOpenEdit(p)}
                           title="Edit Product"
-                          className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded cursor-pointer transition"
+                          className="icon-btn bg-sand hover:bg-sand text-ink cursor-pointer transition"
                         >
                           <Edit size={14} />
                         </button>
@@ -365,13 +367,21 @@ export const AdminProducts: React.FC = () => {
                         {/* Delete (Owner only) */}
                         {currentUser?.role === 'owner' && (
                           <button
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to delete ${p.name}?`)) {
+                            onClick={async () => {
+                              const ok = await confirmAction({
+                                title: `Delete ${p.name}?`,
+                                message: 'It will be removed from the website and the catalogue. Past orders keep their record of it.',
+                                confirmLabel: 'Delete product',
+                                tone: 'danger'
+                              });
+                              if (ok) {
                                 deleteProduct(p.id);
+                                toast(`${p.name} deleted`);
                               }
                             }}
-                            title="Delete Product"
-                            className="p-1.5 bg-neutral-800 hover:bg-red-900 text-red-400 rounded cursor-pointer transition"
+                            aria-label={`Delete ${p.name}`}
+                            title="Delete product"
+                            className="icon-btn bg-sand hover:bg-red-50 text-red-800 cursor-pointer transition"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -389,51 +399,51 @@ export const AdminProducts: React.FC = () => {
       {/* MODAL 1: PRODUCT & HAMPER BUILDER EDITOR */}
       {isEditorOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
           onClick={() => setIsEditorOpen(false)}
         >
           <div
-            className="relative w-full max-w-3xl bg-neutral-900 text-white rounded-2xl border border-neutral-700 p-6 shadow-2xl space-y-5 my-6 max-h-[88vh] overflow-y-auto"
+            className="relative w-full max-w-3xl text-ink p-6 space-y-5 my-6 max-h-[88vh] overflow-y-auto panel"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-              <h3 className="font-heading text-xl font-bold uppercase text-white">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+              <h3 className="display text-2xl">
                 {editingProductId ? 'Edit Product / Hamper' : 'Create New Butchery Product'}
               </h3>
-              <button onClick={() => setIsEditorOpen(false)} className="text-neutral-400 hover:text-white">✕</button>
+              <button onClick={() => setIsEditorOpen(false)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-ink-soft hover:text-ink"><X size={18} /></button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Product Name *</label>
+                  <label className="field-label">Product Name *</label>
                   <input
                     type="text"
                     required
                     value={formName}
                     onChange={e => setFormName(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-sm text-white"
+                    className="field w-full"
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">SKU *</label>
+                  <label className="field-label">SKU *</label>
                   <input
                     type="text"
                     required
                     value={formSku}
                     onChange={e => setFormSku(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-sm text-white font-mono"
+                    className="field w-full num"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Category</label>
+                  <label className="field-label">Category</label>
                   <select
                     value={formCategory}
                     onChange={e => setFormCategory(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-white"
+                    className="field w-full"
                   >
                     {categories.filter(c => c !== 'All').map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -442,11 +452,11 @@ export const AdminProducts: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Pricing Type</label>
+                  <label className="field-label">Pricing Type</label>
                   <select
                     value={formPricingType}
                     onChange={e => setFormPricingType(e.target.value as PricingType)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-white"
+                    className="field w-full"
                   >
                     <option value="fixed">Fixed Price</option>
                     <option value="per_kg">Per Kilogram (kg)</option>
@@ -456,43 +466,43 @@ export const AdminProducts: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Price (ZAR) *</label>
+                  <label className="field-label">Price (ZAR) *</label>
                   <input
                     type="number"
                     step="0.01"
                     required
                     value={formPrice}
                     onChange={e => setFormPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-sm text-white font-mono"
+                    className="field w-full num"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">Short Description</label>
+                <label className="field-label">Short Description</label>
                 <textarea
                   rows={2}
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 />
               </div>
 
               {/* HAMPER BUILDER: "What's Inside" Lines */}
-              <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3">
+              <div className="bg-paper p-4 rounded-xl border border-ink/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-heading font-bold text-sm uppercase text-[#FFC400]">
+                    <h4 className="display text-brand-yellow-deep text-xl">
                       Hamper Contents Builder ("What's Inside")
                     </h4>
-                    <p className="text-[11px] text-neutral-400">
+                    <p className="text-sm text-ink-soft">
                       Auto-computes total weight and price per kg
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={handleAddHamperLine}
-                    className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 cursor-pointer"
+                    className="btn btn-sm btn-outline"
                   >
                     <Plus size={13} />
                     <span>Add Item Line</span>
@@ -500,7 +510,7 @@ export const AdminProducts: React.FC = () => {
                 </div>
 
                 {formHamperItems.length === 0 ? (
-                  <p className="text-neutral-500 italic text-[11px]">
+                  <p className="text-ink-soft text-sm">
                     No hamper breakdown lines. Enter simple total weight below for non-hamper products.
                   </p>
                 ) : (
@@ -512,7 +522,7 @@ export const AdminProducts: React.FC = () => {
                           placeholder="Item Name (e.g. Mince 4 × 500g)"
                           value={line.name}
                           onChange={e => handleUpdateHamperLine(line.id, { name: e.target.value })}
-                          className="col-span-5 bg-neutral-900 border border-neutral-700 rounded p-1.5 text-white text-xs"
+                          className="field col-span-5"
                         />
                         <input
                           type="number"
@@ -521,14 +531,14 @@ export const AdminProducts: React.FC = () => {
                           onChange={e =>
                             handleUpdateHamperLine(line.id, { quantity: parseInt(e.target.value) || 1 })
                           }
-                          className="col-span-2 bg-neutral-900 border border-neutral-700 rounded p-1.5 text-white text-xs"
+                          className="field col-span-2"
                         />
                         <input
                           type="text"
                           placeholder="Pack Size"
                           value={line.packSize}
                           onChange={e => handleUpdateHamperLine(line.id, { packSize: e.target.value })}
-                          className="col-span-2 bg-neutral-900 border border-neutral-700 rounded p-1.5 text-white text-xs"
+                          className="field col-span-2"
                         />
                         <input
                           type="number"
@@ -538,23 +548,21 @@ export const AdminProducts: React.FC = () => {
                           onChange={e =>
                             handleUpdateHamperLine(line.id, { weightKg: parseFloat(e.target.value) || 0 })
                           }
-                          className="col-span-2 bg-neutral-900 border border-neutral-700 rounded p-1.5 text-white text-xs"
+                          className="field col-span-2"
                         />
                         <button
                           type="button"
                           onClick={() => handleRemoveHamperLine(line.id)}
-                          className="col-span-1 text-neutral-500 hover:text-red-400 p-1 text-center"
-                        >
-                          ✕
-                        </button>
+                          className="icon-btn col-span-1 text-ink-soft hover:text-red-800 text-center"
+                        ><X size={18} /></button>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-neutral-800 flex justify-between text-xs text-neutral-300 font-bold">
+                <div className="pt-2 border-t border-ink/10 flex justify-between text-sm text-ink-soft font-bold">
                   <span>Calculated Hamper Weight: {calculatedHamperWeight}kg</span>
-                  <span className="text-[#FFC400]">
+                  <span className="text-brand-yellow-deep">
                     Calculated Price/Kg: {calcPricePerKg(formPrice, calculatedHamperWeight) || 'N/A'}
                   </span>
                 </div>
@@ -562,11 +570,11 @@ export const AdminProducts: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Stock Status</label>
+                  <label className="field-label">Stock Status</label>
                   <select
                     value={formStockStatus}
                     onChange={e => setFormStockStatus(e.target.value as StockStatus)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2.5 text-white"
+                    className="field w-full"
                   >
                     <option value="in_stock">In Stock</option>
                     <option value="low_stock">Low Stock</option>
@@ -576,13 +584,15 @@ export const AdminProducts: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-neutral-300 block mb-1">Image URL</label>
+                  <label className="field-label">Image URL</label>
                   <input
                     type="url"
                     placeholder="https://..."
+                    maxLength={500}
+                    pattern="https://.*"
                     value={formImageUrl}
                     onChange={e => setFormImageUrl(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                    className="field w-full"
                   />
                 </div>
 
@@ -592,34 +602,34 @@ export const AdminProducts: React.FC = () => {
                       type="checkbox"
                       checked={formIsFreeDelivery}
                       onChange={e => setFormIsFreeDelivery(e.target.checked)}
-                      className="rounded bg-neutral-950 border-neutral-700 text-[#D7141A]"
+                      className="rounded bg-paper border-ink/10 text-brand-accent-deep"
                     />
-                    <span className="font-bold text-white">Free Delivery Eligible</span>
+                    <span className="font-bold text-ink">Free Delivery Eligible</span>
                   </label>
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">Tags (comma separated)</label>
+                <label className="field-label">Tags (comma separated)</label>
                 <input
                   type="text"
                   value={formTags}
                   onChange={e => setFormTags(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-neutral-800">
+              <div className="flex justify-end gap-3 pt-3 border-t border-ink/10">
                 <button
                   type="button"
                   onClick={() => setIsEditorOpen(false)}
-                  className="px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg cursor-pointer"
+                  className="btn btn-sm btn-outline"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#D7141A] hover:bg-[#ba0f14] text-white font-bold rounded-lg cursor-pointer"
+                  className="btn btn-sm btn-accent"
                 >
                   Save Product
                 </button>
@@ -632,32 +642,32 @@ export const AdminProducts: React.FC = () => {
       {/* MODAL 2: BULK PRICE UPDATE MODAL WITH PREVIEW */}
       {isBulkModalOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setIsBulkModalOpen(false)}
         >
           <div
-            className="w-full max-w-lg bg-neutral-900 text-white rounded-2xl border border-neutral-700 p-6 shadow-2xl space-y-4"
+            className="w-full max-w-lg text-ink p-6 space-y-4 panel"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-              <h3 className="font-heading text-lg font-bold uppercase text-white flex items-center gap-2">
-                <TrendingUp size={18} className="text-[#FFC400]" />
+            <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+              <h3 className="display flex items-center gap-2 text-2xl">
+                <TrendingUp size={18} className="text-brand-yellow-deep" />
                 <span>Bulk Price Adjustment</span>
               </h3>
-              <button onClick={() => setIsBulkModalOpen(false)} className="text-neutral-400 hover:text-white">✕</button>
+              <button onClick={() => setIsBulkModalOpen(false)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-ink-soft hover:text-ink"><X size={18} /></button>
             </div>
 
-            <p className="text-xs text-neutral-300">
+            <p className="text-sm text-ink-soft">
               Update multiple prices simultaneously (e.g. adjust all Beef items by 5% due to meat market changes).
             </p>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">Target Category:</label>
+                <label className="field-label">Target Category:</label>
                 <select
                   value={bulkCategory}
                   onChange={e => setBulkCategory(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white"
+                  className="field w-full"
                 >
                   {categories.map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -666,20 +676,20 @@ export const AdminProducts: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-bold text-neutral-300 block mb-1">Percentage Change (%):</label>
+                <label className="field-label">Percentage Change (%):</label>
                 <input
                   type="number"
                   step="0.5"
                   value={bulkPercentage}
                   onChange={e => setBulkPercentage(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg p-2 text-white font-mono"
+                  className="field w-full num"
                 />
               </div>
             </div>
 
             {/* Live Preview List */}
-            <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-800 max-h-48 overflow-y-auto space-y-2 text-xs">
-              <span className="font-bold text-neutral-400 block mb-1 uppercase text-[10px]">
+            <div className="bg-paper p-3 rounded-xl border border-ink/10 max-h-48 overflow-y-auto space-y-2 text-sm">
+              <span className="font-bold text-ink-soft block mb-1 text-sm">
                 Price Adjustment Preview:
               </span>
               {products
@@ -688,12 +698,12 @@ export const AdminProducts: React.FC = () => {
                 .map(p => {
                   const updated = applyBulkPriceUpdate(p.price, bulkPercentage);
                   return (
-                    <div key={p.id} className="flex justify-between py-1 border-b border-neutral-800 last:border-0">
+                    <div key={p.id} className="flex justify-between py-1 border-b border-ink/10 last:border-0">
                       <span className="truncate max-w-50">{p.name}</span>
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="text-neutral-500">{formatZAR(p.price)}</span>
+                      <div className="flex items-center gap-2 num">
+                        <span className="text-ink-soft">{formatZAR(p.price)}</span>
                         <span>→</span>
-                        <span className="font-bold text-[#FFC400]">{formatZAR(updated)}</span>
+                        <span className="font-bold text-brand-yellow-deep">{formatZAR(updated)}</span>
                       </div>
                     </div>
                   );
@@ -704,7 +714,7 @@ export const AdminProducts: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsBulkModalOpen(false)}
-                className="px-4 py-2 bg-neutral-800 text-neutral-300 text-xs font-bold rounded-lg cursor-pointer"
+                className="btn btn-sm btn-outline"
               >
                 Cancel
               </button>
@@ -714,7 +724,7 @@ export const AdminProducts: React.FC = () => {
                   bulkUpdatePrices(bulkCategory, bulkPercentage);
                   setIsBulkModalOpen(false);
                 }}
-                className="px-4 py-2 bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold rounded-lg cursor-pointer"
+                className="btn btn-sm btn-accent"
               >
                 Apply Bulk Update
               </button>

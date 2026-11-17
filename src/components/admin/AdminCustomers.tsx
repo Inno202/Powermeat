@@ -78,17 +78,17 @@ export const AdminCustomers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-extrabold uppercase text-white tracking-wide">
+          <h2 className="display text-3xl">
             Customer Directory (POPIA Compliant)
           </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <p className="text-sm text-ink-soft mt-0.5">
             Customer purchasing history, order frequencies, areas, and verified promotional marketing consent.
           </p>
         </div>
 
         <button
           onClick={handleExportCSV}
-          className="bg-neutral-800 hover:bg-neutral-700 text-[#FFC400] border border-[#3E3E3E] text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+          className="btn btn-sm btn-outline"
         >
           <Download size={15} />
           <span>Export Customer CSV</span>
@@ -96,20 +96,20 @@ export const AdminCustomers: React.FC = () => {
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft pointer-events-none" />
         <input
           type="text"
           placeholder="Search by customer name, phone number or town..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full bg-[#1A1A1A] border border-[#333] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+          className="field w-full pl-11"
         />
       </div>
 
-      <div className="bg-[#1A1A1A] rounded-2xl border border-[#2D2D2D] overflow-hidden shadow-xl">
+      <div className="overflow-hidden panel">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#141414] text-neutral-400 uppercase font-bold text-[10px] border-b border-[#2D2D2D]">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-paper text-ink-soft font-bold text-sm border-b border-ink/10">
               <tr>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Cell Phone</th>
@@ -120,40 +120,40 @@ export const AdminCustomers: React.FC = () => {
                 <th className="py-3 px-4 text-right">POPIA Marketing</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#262626]">
+            <tbody className="divide-y divide-ink/10">
               {customerList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-neutral-500">
+                  <td colSpan={7} className="py-8 text-center text-ink-soft">
                     No customers found matching search.
                   </td>
                 </tr>
               ) : (
                 customerList.map((cust, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-800/40 transition">
-                    <td className="py-3 px-4 font-bold text-white text-sm">
+                  <tr key={idx} className="hover:bg-sand/40 transition">
+                    <td className="py-3 px-4 font-bold text-ink text-sm">
                       {cust.name}
                     </td>
-                    <td className="py-3 px-4 font-mono text-neutral-300">
+                    <td className="py-3 px-4 num text-ink-soft">
                       {cust.cell}
                     </td>
-                    <td className="py-3 px-4 text-neutral-400">
+                    <td className="py-3 px-4 text-ink-soft">
                       {cust.area}
                     </td>
-                    <td className="py-3 px-4 text-center font-extrabold text-white">
+                    <td className="py-3 px-4 text-center font-bold text-ink">
                       {cust.orderCount}
                     </td>
-                    <td className="py-3 px-4 font-extrabold text-[#FFC400]">
+                    <td className="py-3 px-4 font-bold text-brand-yellow-deep">
                       {formatZAR(cust.totalSpend)}
                     </td>
-                    <td className="py-3 px-4 text-neutral-400">
+                    <td className="py-3 px-4 text-ink-soft">
                       {new Date(cust.lastOrderDate).toLocaleDateString()}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span
-                        className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                        className={`inline-block text-sm font-bold px-2 py-0.5 rounded ${
                           cust.marketingOptIn
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                            : 'bg-neutral-800 text-neutral-500'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-sand text-ink-soft'
                         }`}
                       >
                         {cust.marketingOptIn ? 'OPTED IN' : 'NO CONSENT'}

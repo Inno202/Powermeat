@@ -3,20 +3,21 @@ import {
   X,
   Truck,
   Store,
-  Calendar,
   CreditCard,
   Banknote,
   FileText,
   MessageCircle,
   ArrowRight,
-  Shield,
   Upload,
-  AlertCircle
+  Check
 } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR, calculateDeliveryFee } from '../../utils/pricing';
 import { getAvailableDates, createWhatsAppOrderLink } from '../../utils/delivery';
 import { Order, OrderItem, PaymentMethod, DeliveryType } from '../../types';
+import { LIMITS, cleanText, isValidCell, isValidEmail, uploadProblem } from '../../utils/validate';
+
+type FieldErrors = Partial<Record<'name' | 'cell' | 'email' | 'address' | 'date' | 'pop', string>>;
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -40,11 +41,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   } = useStore();
 
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('delivery');
+  // Only areas we currently deliver to are offered.
+  const areaChoices = deliveryAreas.some(a => a.active) ? deliveryAreas.filter(a => a.active) : deliveryAreas;
   const [selectedAreaId, setSelectedAreaId] = useState<string>(() => {
-    return deliveryAreas[0]?.id || 'area-welkom';
+    return areaChoices[0]?.id || 'area-welkom';
   });
 
-  const selectedArea = deliveryAreas.find(a => a.id === selectedAreaId) || deliveryAreas[0];
+  const selectedArea = areaChoices.find(a => a.id === selectedAreaId) || areaChoices[0];
 
   // Eligible delivery/collection dates
   const availableDates = getAvailableDates(
@@ -53,9 +56,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     12
   );
 
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => {
+  const [pickedDateStr, setSelectedDateStr] = useState<string>(() => {
     return availableDates[0]?.dateStr || '';
   });
+
+  // If the area changes and the picked date no longer applies, fall back to the first open date.
+  const selectedDateStr = availableDates.some(d => d.dateStr === pickedDateStr)
+    ? pickedDateStr
+    : availableDates[0]?.dateStr || '';
 
   // Customer contact info
   const [customerName, setCustomerName] = useState('');
@@ -63,12 +71,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
-  const [marketingOptIn, setMarketingOptIn] = useState(true);
+  // POPIA: marketing consent must be an active choice, so the box starts unticked.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [popFileUrl, setPopFileUrl] = useState<string>('');
-  const [validationError, setValidationError] = useState<string>('');
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const popUploadInputId = useId();
 
@@ -100,485 +110,446 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePopFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPopFileUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    const problem = uploadProblem(file);
+    if (problem) {
+      e.target.value = '';
+      setPopFileUrl('');
+      setErrors(prev => ({ ...prev, pop: problem }));
+      return;
     }
+    setErrors(prev => ({ ...prev, pop: undefined }));
+    const reader = new FileReader();
+    reader.onload = () => setPopFileUrl(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const validateForm = (): boolean => {
-    if (!customerName.trim()) {
-      setValidationError('Please enter your full name.');
+    const next: FieldErrors = {};
+    if (cleanText(customerName, LIMITS.name).length < 2) next.name = 'Enter your full name.';
+    if (!isValidCell(customerCell)) next.cell = 'Enter a South African cell number, for example 082 123 4567.';
+    if (customerEmail.trim() && !isValidEmail(customerEmail.trim())) next.email = 'Check the email address, or leave it empty.';
+    if (deliveryType === 'delivery' && cleanText(deliveryAddress, LIMITS.address).length < 5)
+      next.address = `Enter your street address and suburb in ${selectedArea.name}.`;
+    if (!selectedDateStr || !availableDates.some(d => d.dateStr === selectedDateStr))
+      next.date = `Choose a ${deliveryType === 'delivery' ? 'delivery' : 'collection'} date.`;
+    setErrors(next);
+    const first = (['date', 'name', 'cell', 'email', 'address'] as const).find(k => next[k]);
+    if (first) {
+      window.setTimeout(() => document.getElementById(`checkout-${first}`)?.focus(), 0);
       return false;
     }
-    if (!customerCell.trim() || customerCell.replace(/[^0-9]/g, '').length < 9) {
-      setValidationError('Please provide a valid South African cell phone number.');
-      return false;
-    }
-    if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
-      setValidationError('Please enter your delivery street address in ' + selectedArea.name + '.');
-      return false;
-    }
-    if (!selectedDateStr) {
-      setValidationError('Please select an eligible delivery/collection date.');
-      return false;
-    }
-    setValidationError('');
     return true;
   };
 
+  const buildOrder = (source: 'web' | 'whatsapp') => ({
+    customerName: cleanText(customerName, LIMITS.name),
+    customerCell: cleanText(customerCell, LIMITS.cell),
+    customerEmail: customerEmail.trim() || undefined,
+    deliveryType,
+    area: selectedArea.name,
+    deliveryAddress: deliveryType === 'delivery' ? cleanText(deliveryAddress, LIMITS.address) : undefined,
+    deliveryDate: selectedDateStr,
+    items: prepareOrderItems(),
+    subtotal: cartSubtotal,
+    deliveryFee,
+    total: finalTotal,
+    paymentMethod,
+    paymentStatus: 'pending' as const,
+    orderStatus: 'new' as const,
+    source,
+    notes: cleanText(notes, LIMITS.notes) || undefined,
+    marketingOptIn,
+    popUrl: popFileUrl || undefined
+  });
+
   const handleStandardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    const items = prepareOrderItems();
-    const newOrder = createOrder({
-      customerName: customerName.trim(),
-      customerCell: customerCell.trim(),
-      customerEmail: customerEmail.trim() || undefined,
-      deliveryType,
-      area: selectedArea.name,
-      deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : undefined,
-      deliveryDate: selectedDateStr,
-      items,
-      subtotal: cartSubtotal,
-      deliveryFee,
-      total: finalTotal,
-      paymentMethod,
-      paymentStatus: paymentMethod === 'eft' && popFileUrl ? 'pending' : 'pending',
-      orderStatus: 'new',
-      source: 'web',
-      notes: notes.trim() || undefined,
-      marketingOptIn,
-      popUrl: popFileUrl || undefined
-    });
-
+    if (submitting || cart.length === 0 || !validateForm()) return;
+    setSubmitting(true);
+    const newOrder = createOrder(buildOrder('web'));
     clearCart();
     onOrderComplete(newOrder);
+    setSubmitting(false);
   };
 
   const handleWhatsAppOrderSubmit = () => {
-    if (!validateForm()) return;
-
-    const items = prepareOrderItems();
-    const newOrder = createOrder({
-      customerName: customerName.trim(),
-      customerCell: customerCell.trim(),
-      customerEmail: customerEmail.trim() || undefined,
-      deliveryType,
-      area: selectedArea.name,
-      deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : undefined,
-      deliveryDate: selectedDateStr,
-      items,
-      subtotal: cartSubtotal,
-      deliveryFee,
-      total: finalTotal,
-      paymentMethod,
-      paymentStatus: 'pending',
-      orderStatus: 'new',
-      source: 'whatsapp', // Tracked as WhatsApp source!
-      notes: notes.trim() || undefined,
-      marketingOptIn,
-      popUrl: popFileUrl || undefined
-    });
-
-    // Create and launch WhatsApp link
+    if (submitting || cart.length === 0 || !validateForm()) return;
+    setSubmitting(true);
+    const data = buildOrder('whatsapp');
+    const newOrder = createOrder(data);
     const waLink = createWhatsAppOrderLink(settings.whatsapp, {
       orderNumber: newOrder.id,
-      customerName: customerName.trim(),
-      customerCell: customerCell.trim(),
+      customerName: data.customerName,
+      customerCell: data.customerCell,
       deliveryType,
-      area: selectedArea.name,
-      deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : undefined,
-      deliveryDate: selectedDateStr,
-      items,
-      subtotal: cartSubtotal,
+      area: data.area,
+      deliveryAddress: data.deliveryAddress,
+      deliveryDate: data.deliveryDate,
+      items: data.items,
+      subtotal: data.subtotal,
       deliveryFee,
       total: finalTotal,
       paymentMethod,
-      notes: notes.trim() || undefined
+      notes: data.notes
     });
-
     clearCart();
-    window.open(waLink, '_blank');
+    window.open(waLink, '_blank', 'noopener,noreferrer');
     onOrderComplete(newOrder);
+    setSubmitting(false);
   };
+
+  const clearError = (key: keyof FieldErrors) =>
+    setErrors(prev => (prev[key] ? { ...prev, [key]: undefined } : prev));
+
+  const choiceClass = (on: boolean) =>
+    `min-h-[56px] p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-colors ${
+      on ? 'border-ink bg-white' : 'border-ink/15 bg-white/60 hover:border-ink/40'
+    }`;
+  const dateWord = deliveryType === 'delivery' ? 'Delivery' : 'Collection';
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 flex items-start sm:items-center justify-center p-2 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-[#1A1A1A] text-neutral-100 rounded-2xl border border-[#333] shadow-2xl overflow-hidden my-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="checkout-title"
+        className="sheet-in relative w-full max-w-2xl bg-paper text-ink rounded-3xl overflow-hidden my-2 sm:my-6"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2B2B2B] bg-[#111111]">
-          <h2 className="text-xl font-heading font-extrabold uppercase tracking-wide text-white flex items-center gap-2">
-            <span>Checkout & Order Placement</span>
+        <div className="flex items-center justify-between px-5 sm:px-7 pt-4 pb-2">
+          <h2 id="checkout-title" className="display text-4xl">
+            Checkout
           </h2>
-          <button
-            onClick={onClose}
-            aria-label="Close Checkout"
-            className="p-1 rounded-md text-neutral-400 hover:text-white cursor-pointer"
-          >
-            <X size={20} />
+          <button type="button" onClick={onClose} aria-label="Close checkout" className="icon-btn hover:bg-sand">
+            <X size={22} />
           </button>
         </div>
 
-        <form onSubmit={handleStandardSubmit} className="p-6 space-y-6 max-h-[82vh] overflow-y-auto">
-          {validationError && (
-            <div className="p-3 bg-red-950/80 border border-red-800 text-red-200 text-xs rounded-lg flex items-center gap-2">
-              <AlertCircle size={16} className="shrink-0 text-red-400" />
-              <span>{validationError}</span>
-            </div>
-          )}
-
-          {/* Step 1: Delivery or Collection */}
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
-              1. Fulfillment Method
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleStandardSubmit} noValidate className="px-5 sm:px-7 pb-6 space-y-8">
+          <fieldset>
+            <legend className="field-label">How would you like to get your order?</legend>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
+                aria-pressed={deliveryType === 'delivery'}
                 onClick={() => setDeliveryType('delivery')}
-                className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition cursor-pointer ${
-                  deliveryType === 'delivery'
-                    ? 'border-[#D7141A] bg-[#2A1617] text-white ring-2 ring-[#D7141A]/50'
-                    : 'border-[#333] bg-neutral-900 text-neutral-400 hover:border-neutral-600'
-                }`}
+                className={choiceClass(deliveryType === 'delivery')}
               >
-                <Truck size={20} className={deliveryType === 'delivery' ? 'text-[#D7141A]' : 'text-neutral-500'} />
-                <div>
-                  <div className="text-sm font-bold text-white">Delivery to Address</div>
-                  <div className="text-[11px] text-neutral-400">Welkom & Goldfields towns</div>
-                </div>
+                <Truck size={22} className="shrink-0 text-brand-accent-deep" />
+                <span>
+                  <span className="block font-semibold">Delivery</span>
+                  <span className="block text-sm text-ink-soft">Welkom and Goldfields towns</span>
+                </span>
               </button>
-
               <button
                 type="button"
+                aria-pressed={deliveryType === 'collection'}
                 onClick={() => setDeliveryType('collection')}
-                className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition cursor-pointer ${
-                  deliveryType === 'collection'
-                    ? 'border-[#D7141A] bg-[#2A1617] text-white ring-2 ring-[#D7141A]/50'
-                    : 'border-[#333] bg-neutral-900 text-neutral-400 hover:border-neutral-600'
-                }`}
+                className={choiceClass(deliveryType === 'collection')}
               >
-                <Store size={20} className={deliveryType === 'collection' ? 'text-[#D7141A]' : 'text-neutral-500'} />
-                <div>
-                  <div className="text-sm font-bold text-white">Collection in Store</div>
-                  <div className="text-[11px] text-neutral-400">145 Power Rd, Welkom (Free)</div>
-                </div>
+                <Store size={22} className="shrink-0 text-brand-accent-deep" />
+                <span>
+                  <span className="block font-semibold">Collect in store</span>
+                  <span className="block text-sm text-ink-soft">145 Power Rd, Welkom (free)</span>
+                </span>
               </button>
             </div>
-          </div>
+          </fieldset>
 
-          {/* Step 2: Area Selection */}
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
-              2. Select Your Area / Town
+            <label htmlFor="checkout-area" className="field-label">
+              Your area
             </label>
             <select
+              id="checkout-area"
               value={selectedAreaId}
               onChange={e => setSelectedAreaId(e.target.value)}
-              className="w-full bg-neutral-900 border border-[#333] rounded-lg px-3.5 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-[#D7141A]"
+              className="field"
             >
-              {deliveryAreas.map(area => (
+              {areaChoices.map(area => (
                 <option key={area.id} value={area.id}>
-                  {area.name} — {area.days.join(', ')} ({area.fee === 0 ? 'Free' : `R${area.fee.toFixed(2)}`})
+                  {area.name} · {area.days.join(', ')} ({area.fee === 0 ? 'Free' : formatZAR(area.fee)})
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Step 3: Date Selection with 12h00 Cutoff */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                3. {deliveryType === 'delivery' ? 'Delivery Date' : 'Collection Date'}
-              </label>
-              <span className="text-[11px] text-[#FFC400] font-semibold">
-                Cutoff: 12h00 noon day before
-              </span>
-            </div>
-
+          <fieldset>
+            <legend className="field-label">{dateWord} date</legend>
             {availableDates.length === 0 ? (
-              <p className="text-xs text-red-400 bg-red-950/40 p-2.5 rounded border border-red-900">
-                No delivery dates are currently available for this area. Please choose in-store collection or another area.
+              <p className="field-error">
+                No dates are available for this area right now. Choose collection in store or another area.
               </p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {availableDates.slice(0, 6).map(d => (
+                {availableDates.slice(0, 6).map((d, i) => (
                   <button
                     key={d.dateStr}
+                    id={i === 0 ? 'checkout-date' : undefined}
                     type="button"
+                    aria-pressed={selectedDateStr === d.dateStr}
                     onClick={() => setSelectedDateStr(d.dateStr)}
-                    className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer text-xs ${
+                    className={`num min-h-[56px] py-2 px-3 rounded-2xl border text-center transition-colors ${
                       selectedDateStr === d.dateStr
-                        ? 'border-[#D7141A] bg-[#D7141A] text-white font-bold'
-                        : 'border-[#333] bg-neutral-900 text-neutral-300 hover:border-neutral-500'
+                        ? 'border-ink bg-ink text-white'
+                        : 'border-ink/15 bg-white/60 hover:border-ink/40'
                     }`}
                   >
-                    <div>{d.label}</div>
-                    <div className="text-[10px] opacity-75">{d.dayName}</div>
+                    <span className="block font-semibold">{d.label}</span>
+                    <span className="block text-sm opacity-80">{d.dayName}</span>
                   </button>
                 ))}
               </div>
             )}
-          </div>
+            {errors.date && <p className="field-error">{errors.date}</p>}
+            <p className="field-help">Orders close at 12:00 noon the day before.</p>
+          </fieldset>
 
-          {/* Step 4: Contact & Address */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 block">
-              4. Customer Details
-            </label>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
+                <label htmlFor="checkout-name" className="field-label">
+                  Full name
+                </label>
                 <input
+                  id="checkout-name"
                   type="text"
-                  required
-                  placeholder="Full Name *"
+                  autoComplete="name"
+                  maxLength={LIMITS.name}
+                  aria-invalid={!!errors.name}
                   value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  className="w-full bg-neutral-900 border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+                  onChange={e => {
+                    setCustomerName(e.target.value);
+                    clearError('name');
+                  }}
+                  className="field"
                 />
+                {errors.name && <p className="field-error">{errors.name}</p>}
               </div>
               <div>
+                <label htmlFor="checkout-cell" className="field-label">
+                  Cell number
+                </label>
                 <input
+                  id="checkout-cell"
                   type="tel"
-                  required
-                  placeholder="Cell Number (e.g. 082 123 4567) *"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={LIMITS.cell}
+                  placeholder="082 123 4567"
+                  aria-invalid={!!errors.cell}
                   value={customerCell}
-                  onChange={e => setCustomerCell(e.target.value)}
-                  className="w-full bg-neutral-900 border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+                  onChange={e => {
+                    setCustomerCell(e.target.value);
+                    clearError('cell');
+                  }}
+                  className="field num"
                 />
+                {errors.cell && <p className="field-error">{errors.cell}</p>}
               </div>
             </div>
 
             <div>
+              <label htmlFor="checkout-email" className="field-label">
+                Email <span className="font-normal text-ink-soft">(optional, for a digital receipt)</span>
+              </label>
               <input
+                id="checkout-email"
                 type="email"
-                placeholder="Email Address (Optional, for digital receipt)"
+                autoComplete="email"
+                maxLength={LIMITS.email}
+                aria-invalid={!!errors.email}
                 value={customerEmail}
-                onChange={e => setCustomerEmail(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+                onChange={e => {
+                    setCustomerEmail(e.target.value);
+                    clearError('email');
+                  }}
+                className="field"
               />
+              {errors.email && <p className="field-error">{errors.email}</p>}
             </div>
 
             {deliveryType === 'delivery' && (
               <div>
+                <label htmlFor="checkout-address" className="field-label">
+                  Street address and suburb in {selectedArea.name}
+                </label>
                 <textarea
-                  required
+                  id="checkout-address"
                   rows={2}
-                  placeholder={`Delivery Street Address & Suburb in ${selectedArea.name} *`}
+                  autoComplete="street-address"
+                  maxLength={LIMITS.address}
+                  aria-invalid={!!errors.address}
                   value={deliveryAddress}
-                  onChange={e => setDeliveryAddress(e.target.value)}
-                  className="w-full bg-neutral-900 border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+                  onChange={e => {
+                    setDeliveryAddress(e.target.value);
+                    clearError('address');
+                  }}
+                  className="field"
                 />
+                {errors.address && <p className="field-error">{errors.address}</p>}
               </div>
             )}
 
             <div>
+              <label htmlFor="checkout-notes" className="field-label">
+                Cutting or delivery notes <span className="font-normal text-ink-soft">(optional)</span>
+              </label>
               <input
+                id="checkout-notes"
                 type="text"
-                placeholder="Special butchery cutting or delivery notes (optional)"
+                maxLength={LIMITS.notes}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                className="w-full bg-neutral-900 border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+                className="field"
               />
             </div>
 
-            {/* POPIA Compliance Consent */}
-            <label className="flex items-start gap-2 pt-1 cursor-pointer select-none">
+            <label className="flex items-start gap-3 min-h-[44px] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={marketingOptIn}
                 onChange={e => setMarketingOptIn(e.target.checked)}
-                className="mt-0.5 rounded border-neutral-600 bg-neutral-900 text-[#D7141A] focus:ring-[#D7141A]"
+                className="mt-1 w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
               />
-              <span className="text-[11px] text-neutral-400 leading-tight">
+              <span className="text-sm text-ink-soft">
                 Receive SMS / WhatsApp updates on Powermeat monthly specials & hamper promotions (POPIA compliant).
               </span>
             </label>
           </div>
 
-          {/* Step 5: Payment Method */}
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
-              5. Payment Method
-            </label>
-            <div className="space-y-2">
-              {/* Pay on Delivery/Collection */}
-              <label
-                className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
-                  paymentMethod === 'cod'
-                    ? 'border-[#D7141A] bg-[#2A1617] text-white'
-                    : 'border-[#333] bg-neutral-900 text-neutral-300'
-                }`}
-              >
-                <div className="flex items-center gap-3">
+          <fieldset>
+            <legend className="field-label">How would you like to pay?</legend>
+            <div className="space-y-2.5">
+              <label className={`${choiceClass(paymentMethod === 'cod')} cursor-pointer`}>
+                <input
+                  type="radio"
+                  name="payment"
+                  value="cod"
+                  checked={paymentMethod === 'cod'}
+                  onChange={() => setPaymentMethod('cod')}
+                  className="w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
+                />
+                <Banknote size={22} className="shrink-0 text-ink-soft" />
+                <span>
+                  <span className="block font-semibold">Pay on {dateWord.toLowerCase()}</span>
+                  <span className="block text-sm text-ink-soft">
+                    Cash or Speedpoint card swipe with the driver or at the counter
+                  </span>
+                </span>
+              </label>
+
+              <div className={`${choiceClass(paymentMethod === 'eft')} flex-col !items-stretch`}>
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
                     name="payment"
-                    value="cod"
-                    checked={paymentMethod === 'cod'}
-                    onChange={() => setPaymentMethod('cod')}
-                    className="text-[#D7141A] focus:ring-[#D7141A]"
+                    value="eft"
+                    checked={paymentMethod === 'eft'}
+                    onChange={() => setPaymentMethod('eft')}
+                    className="w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
                   />
-                  <Banknote size={18} className="text-[#FFC400]" />
-                  <div>
-                    <span className="text-sm font-bold block">
-                      Pay on {deliveryType === 'delivery' ? 'Delivery' : 'Collection'}
+                  <FileText size={22} className="shrink-0 text-ink-soft" />
+                  <span>
+                    <span className="block font-semibold">Direct bank EFT</span>
+                    <span className="num block text-sm text-ink-soft">
+                      FNB Powermeat Welkom (Acc: 62891234567, Branch: 250655)
                     </span>
-                    <span className="text-[11px] text-neutral-400">
-                      Cash or Speedpoint Card Swipe with driver / counter
-                    </span>
-                  </div>
-                </div>
-              </label>
-
-              {/* Bank EFT */}
-              <label
-                className={`flex flex-col p-3 rounded-xl border cursor-pointer transition ${
-                  paymentMethod === 'eft'
-                    ? 'border-[#D7141A] bg-[#2A1617] text-white'
-                    : 'border-[#333] bg-neutral-900 text-neutral-300'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="eft"
-                      checked={paymentMethod === 'eft'}
-                      onChange={() => setPaymentMethod('eft')}
-                      className="text-[#D7141A] focus:ring-[#D7141A]"
-                    />
-                    <FileText size={18} className="text-[#FFC400]" />
-                    <div>
-                      <span className="text-sm font-bold block">Direct Bank EFT</span>
-                      <span className="text-[11px] text-neutral-400">
-                        FNB Powermeat Welkom (Acc: 62891234567, Branch: 250655)
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  </span>
+                </label>
 
                 {paymentMethod === 'eft' && (
-                  <div className="mt-3 pt-3 border-t border-[#3E2325] pl-6 text-xs text-neutral-300 space-y-2">
-                    <p className="text-[11px] text-neutral-400">
-                      Upload proof of payment now or WhatsApp it to 072 477 9314 with your order number.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <label
-                        htmlFor={popUploadInputId}
-                        className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-3 py-1.5 rounded border border-[#444] cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold"
-                      >
-                        <Upload size={14} />
-                        <span>Upload POP Screenshot</span>
+                  <div className="mt-3 pt-3 border-t border-ink/10 text-sm text-ink-soft">
+                    <p>Upload proof of payment now or WhatsApp it to 072 477 9314 with your order number.</p>
+                    <div className="mt-2 flex items-center flex-wrap gap-3">
+                      <label htmlFor={popUploadInputId} className="btn btn-sm btn-outline cursor-pointer">
+                        <Upload size={16} />
+                        <span>Attach proof of payment</span>
                       </label>
                       <input
                         id={popUploadInputId}
                         type="file"
-                        accept="image/*,.pdf"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
                         onChange={handlePopFileUpload}
-                        className="hidden"
+                        className="sr-only"
                       />
                       {popFileUrl && (
-                        <span className="text-emerald-400 text-xs font-bold">
-                          ✓ File attached
+                        <span className="inline-flex items-center gap-1.5 text-emerald-800 font-semibold">
+                          <Check size={16} />
+                          File attached
                         </span>
                       )}
                     </div>
+                    {errors.pop ? (
+                      <p className="field-error" role="alert">
+                        {errors.pop}
+                      </p>
+                    ) : (
+                      <p className="field-help">JPG, PNG, WebP or PDF, up to 2 MB.</p>
+                    )}
                   </div>
                 )}
-              </label>
+              </div>
 
-              {/* Online Card (PayFast/Yoco) Toggleable in Settings */}
-              {settings.onlinePaymentEnabled ? (
-                <label
-                  className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
-                    paymentMethod === 'online_card'
-                      ? 'border-[#D7141A] bg-[#2A1617] text-white'
-                      : 'border-[#333] bg-neutral-900 text-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="online_card"
-                      checked={paymentMethod === 'online_card'}
-                      onChange={() => setPaymentMethod('online_card')}
-                      className="text-[#D7141A] focus:ring-[#D7141A]"
-                    />
-                    <CreditCard size={18} className="text-[#FFC400]" />
-                    <div>
-                      <span className="text-sm font-bold block">Online Card Payment</span>
-                      <span className="text-[11px] text-neutral-400">
-                        Visa, Mastercard & Instant EFT (PayFast / Yoco)
-                      </span>
-                    </div>
-                  </div>
+              {settings.onlinePaymentEnabled && (
+                <label className={`${choiceClass(paymentMethod === 'online_card')} cursor-pointer`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="online_card"
+                    checked={paymentMethod === 'online_card'}
+                    onChange={() => setPaymentMethod('online_card')}
+                    className="w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
+                  />
+                  <CreditCard size={22} className="shrink-0 text-ink-soft" />
+                  <span>
+                    <span className="block font-semibold">Online card payment</span>
+                    <span className="block text-sm text-ink-soft">Visa, Mastercard & Instant EFT (PayFast / Yoco)</span>
+                  </span>
                 </label>
-              ) : null}
+              )}
             </div>
-          </div>
+          </fieldset>
 
-          {/* Cost Summary Box */}
-          <div className="bg-neutral-900 rounded-xl p-4 border border-[#2D2D2D] space-y-2 text-xs">
-            <div className="flex justify-between text-neutral-400">
-              <span>Cart Subtotal</span>
-              <span className="font-bold text-white">{formatZAR(cartSubtotal)}</span>
+          <dl className="panel p-5 space-y-2">
+            <div className="flex justify-between">
+              <dt className="text-ink-soft">Subtotal</dt>
+              <dd className="num font-semibold">{formatZAR(cartSubtotal)}</dd>
             </div>
-            <div className="flex justify-between text-neutral-400">
-              <span>Delivery Fee ({selectedArea.name})</span>
-              <span className="font-bold text-white">
-                {deliveryFee === 0 ? (
-                  <span className="text-emerald-400 font-extrabold">FREE</span>
-                ) : (
-                  formatZAR(deliveryFee)
-                )}
-              </span>
+            <div className="flex justify-between">
+              <dt className="text-ink-soft">
+                {deliveryType === 'delivery' ? `Delivery to ${selectedArea.name}` : 'Collection in store'}
+              </dt>
+              <dd className="num font-semibold">
+                {deliveryFee === 0 ? <span className="text-emerald-800">Free</span> : formatZAR(deliveryFee)}
+              </dd>
             </div>
             {isCartFreeDelivery && deliveryType === 'delivery' && (
-              <p className="text-[11px] text-emerald-400 font-medium">
-                🎉 Free delivery applied (Family Hamper / Meat Combo in cart)
-              </p>
+              <p className="text-sm text-emerald-800">Free delivery applied: a Family Hamper or Meat Combo is in your cart.</p>
             )}
-            <div className="pt-2 border-t border-[#333] flex justify-between items-baseline text-sm font-extrabold text-white">
-              <span>Total Payable</span>
-              <span className="text-xl text-[#FFC400] font-heading font-black">
-                {formatZAR(finalTotal)}
-              </span>
+            <div className="pt-3 border-t border-ink/10 flex justify-between items-baseline">
+              <dt className="font-semibold">Total to pay</dt>
+              <dd className="num display text-4xl">{formatZAR(finalTotal)}</dd>
             </div>
-          </div>
+          </dl>
 
-          {/* Action Buttons: Standard Place Order vs WhatsApp Order */}
-          <div className="space-y-2 pt-2">
-            <button
-              type="submit"
-              className="w-full bg-[#D7141A] hover:bg-[#ba0f14] active:bg-[#8F0A0E] text-white font-heading text-lg font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-red-950/40 transition cursor-pointer select-none"
-            >
-              <span>Place Order ({formatZAR(finalTotal)})</span>
-              <ArrowRight size={18} />
+          <div className="space-y-2.5">
+            <button type="submit" disabled={submitting || cart.length === 0} className="btn btn-lg btn-accent btn-block">
+              <span className="num">Place order · {formatZAR(finalTotal)}</span>
+              <ArrowRight size={18} className="btn-arrow" />
             </button>
-
-            {/* "Order via WhatsApp" alternative */}
             <button
               type="button"
               onClick={handleWhatsAppOrderSubmit}
-              className="w-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa4f] text-white font-heading text-base font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition cursor-pointer select-none"
+              disabled={submitting || cart.length === 0}
+              className="btn btn-lg btn-whatsapp btn-block"
             >
-              <MessageCircle size={20} className="fill-white" />
-              <span>Order via WhatsApp (wa.me/27724779314)</span>
+              <MessageCircle size={20} />
+              <span>Order on WhatsApp instead</span>
             </button>
           </div>
         </form>

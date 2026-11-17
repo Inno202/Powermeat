@@ -67,42 +67,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Welcome & Quick Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#1C1C1C] p-5 rounded-2xl border border-[#2D2D2D]">
-        <div>
-          <span className="text-xs uppercase font-extrabold tracking-wider text-[#D7141A]">
-            Butchery Control Panel
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-heading font-extrabold uppercase text-white tracking-wide">
-            {currentUser?.name || 'Staff Member'} ({currentUser?.role.toUpperCase()})
-          </h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            145 Power Road, Welkom • Store & Delivery Dispatch Overview
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <h1 className="display text-4xl sm:text-5xl">
+          Today at the <span className="text-brand-accent">butchery</span>
+        </h1>
 
         {/* Quick Action Buttons (Hidden for Drivers) */}
         {!isDriver && (
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={onOpenNewOrderModal}
-              className="bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md"
+              className="btn btn-sm btn-accent"
             >
               <Plus size={15} />
-              <span>+ New Order</span>
+              <span>New Order</span>
             </button>
             <button
               onClick={onOpenNewSpecialModal}
-              className="bg-[#FFC400] hover:bg-[#e6b000] text-neutral-950 text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md"
+              className="btn btn-sm btn-outline"
             >
               <Flame size={15} />
-              <span>+ New Special</span>
+              <span>New Special</span>
             </button>
             <button
               onClick={onOpenNewProductModal}
-              className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-[#3E3E3E] text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+              className="btn btn-sm btn-outline"
             >
               <Package size={15} />
-              <span>+ New Product</span>
+              <span>New Product</span>
             </button>
           </div>
         )}
@@ -111,35 +103,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Critical Alerts Strip */}
       <div className="space-y-2">
         {unpaidEFTOrders.length > 0 && (
-          <div className="p-3.5 bg-amber-950/70 border border-amber-800/80 rounded-xl text-amber-200 text-xs flex items-center justify-between">
+          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-[#FFC400] shrink-0" />
+              <AlertTriangle size={16} className="text-brand-yellow-deep shrink-0" />
               <span>
                 <strong>{unpaidEFTOrders.length} Unpaid EFT Orders:</strong> Waiting for bank clearance or customer POP screenshot.
               </span>
             </div>
             <button
               onClick={() => onNavigateTab('orders')}
-              className="underline font-bold text-amber-300 hover:text-white ml-2 cursor-pointer"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 underline font-bold text-amber-800 hover:text-ink ml-2 cursor-pointer"
             >
-              View Orders →
+              View Orders
             </button>
           </div>
         )}
 
         {endingSpecials.length > 0 && (
-          <div className="p-3.5 bg-red-950/70 border border-red-800/80 rounded-xl text-red-200 text-xs flex items-center justify-between">
+          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="text-[#D7141A] shrink-0" />
+              <Clock size={16} className="text-brand-accent-deep shrink-0" />
               <span>
                 <strong>{endingSpecials.length} Specials Ending Today:</strong> Check specials tab to re-run or archive.
               </span>
             </div>
             <button
               onClick={() => onNavigateTab('specials')}
-              className="underline font-bold text-red-300 hover:text-white ml-2 cursor-pointer"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 underline font-bold text-red-800 hover:text-ink ml-2 cursor-pointer"
             >
-              Manage Specials →
+              Manage Specials
             </button>
           </div>
         )}
@@ -150,111 +142,111 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Metric 1: New Orders */}
         <div
           onClick={() => onNavigateTab('orders')}
-          className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2D2D2D] hover:border-[#D7141A] transition cursor-pointer"
+          className="p-4 hover:border-brand-accent transition cursor-pointer panel"
         >
-          <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">New Orders</span>
-            <div className="p-1.5 bg-red-950 text-[#D7141A] rounded-lg">
+          <div className="flex items-center justify-between text-ink-soft mb-2">
+            <span className="text-sm font-bold ">New Orders</span>
+            <div className="p-1.5 bg-red-50 text-brand-accent-deep rounded-lg">
               <ShoppingBag size={16} />
             </div>
           </div>
-          <div className="font-heading font-black text-3xl text-white">
+          <div className="display text-3xl text-ink">
             {newOrders.length}
           </div>
-          <p className="text-[11px] text-neutral-400 mt-1">Requires confirmation</p>
+          <p className="text-sm text-ink-soft mt-1">Requires confirmation</p>
         </div>
 
         {/* Metric 2: Orders to Pack */}
         <div
           onClick={() => onNavigateTab('orders')}
-          className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2D2D2D] hover:border-[#D7141A] transition cursor-pointer"
+          className="p-4 hover:border-brand-accent transition cursor-pointer panel"
         >
-          <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">To Pack</span>
-            <div className="p-1.5 bg-amber-950 text-[#FFC400] rounded-lg">
+          <div className="flex items-center justify-between text-ink-soft mb-2">
+            <span className="text-sm font-bold ">To Pack</span>
+            <div className="p-1.5 bg-amber-50 text-brand-yellow-deep rounded-lg">
               <Package size={16} />
             </div>
           </div>
-          <div className="font-heading font-black text-3xl text-white">
+          <div className="display text-3xl text-ink">
             {ordersToPack.length}
           </div>
-          <p className="text-[11px] text-neutral-400 mt-1">In butchery prep</p>
+          <p className="text-sm text-ink-soft mt-1">In butchery prep</p>
         </div>
 
         {/* Metric 3: Active Deliveries */}
         <div
           onClick={() => onNavigateTab('orders')}
-          className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2D2D2D] hover:border-[#D7141A] transition cursor-pointer"
+          className="p-4 hover:border-brand-accent transition cursor-pointer panel"
         >
-          <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">Deliveries</span>
-            <div className="p-1.5 bg-blue-950 text-blue-400 rounded-lg">
+          <div className="flex items-center justify-between text-ink-soft mb-2">
+            <span className="text-sm font-bold ">Deliveries</span>
+            <div className="p-1.5 bg-blue-50 text-blue-800 rounded-lg">
               <Truck size={16} />
             </div>
           </div>
-          <div className="font-heading font-black text-3xl text-white">
+          <div className="display text-3xl text-ink">
             {deliveriesPending.length}
           </div>
-          <p className="text-[11px] text-neutral-400 mt-1">Across {Object.keys(deliveriesByArea).length} areas</p>
+          <p className="text-sm text-ink-soft mt-1">Across {Object.keys(deliveriesByArea).length} areas</p>
         </div>
 
         {/* Metric 4: Collections Pending */}
         <div
           onClick={() => onNavigateTab('orders')}
-          className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2D2D2D] hover:border-[#D7141A] transition cursor-pointer"
+          className="p-4 hover:border-brand-accent transition cursor-pointer panel"
         >
-          <div className="flex items-center justify-between text-neutral-400 mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">Store Pickups</span>
-            <div className="p-1.5 bg-emerald-950 text-emerald-400 rounded-lg">
+          <div className="flex items-center justify-between text-ink-soft mb-2">
+            <span className="text-sm font-bold ">Store Pickups</span>
+            <div className="p-1.5 bg-emerald-50 text-emerald-800 rounded-lg">
               <Store size={16} />
             </div>
           </div>
-          <div className="font-heading font-black text-3xl text-white">
+          <div className="display text-3xl text-ink">
             {collectionsToday.length}
           </div>
-          <p className="text-[11px] text-neutral-400 mt-1">145 Power Rd counter</p>
+          <p className="text-sm text-ink-soft mt-1">145 Power Rd counter</p>
         </div>
       </div>
 
       {/* Revenue Section (Owner / Manager only) */}
       {(currentUser?.role === 'owner' || currentUser?.role === 'manager') && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-[#1E1E1E] to-[#151515] p-5 rounded-xl border border-[#333]">
-            <span className="text-xs text-neutral-400 uppercase font-bold tracking-wider block mb-1">
+          <div className="panel p-5">
+            <span className="text-sm text-ink-soft font-bold block mb-1">
               Revenue Today
             </span>
-            <span className="font-heading font-extrabold text-2xl text-[#FFC400]">
+            <span className="display text-2xl text-brand-yellow-deep">
               {formatZAR(revenueToday)}
             </span>
-            <span className="text-[11px] text-neutral-500 block mt-1">
+            <span className="text-sm text-ink-soft block mt-1">
               Active orders placed today
             </span>
           </div>
 
-          <div className="bg-gradient-to-br from-[#1E1E1E] to-[#151515] p-5 rounded-xl border border-[#333]">
-            <span className="text-xs text-neutral-400 uppercase font-bold tracking-wider block mb-1">
+          <div className="panel p-5">
+            <span className="text-sm text-ink-soft font-bold block mb-1">
               Total Order Volume
             </span>
-            <span className="font-heading font-extrabold text-2xl text-white">
+            <span className="display text-2xl text-ink">
               {formatZAR(totalRevenue)}
             </span>
-            <span className="text-[11px] text-neutral-500 block mt-1">
+            <span className="text-sm text-ink-soft block mt-1">
               Across all {orders.length} captured orders
             </span>
           </div>
 
-          <div className="bg-gradient-to-br from-[#1E1E1E] to-[#151515] p-5 rounded-xl border border-[#333] flex items-center justify-between">
+          <div className="panel p-5 flex items-center justify-between">
             <div>
-              <span className="text-xs text-neutral-400 uppercase font-bold tracking-wider block mb-1">
+              <span className="text-sm text-ink-soft font-bold block mb-1">
                 Full Financial Reports
               </span>
-              <span className="text-xs text-neutral-300">
+              <span className="text-sm text-ink-soft">
                 Category breakdown & CSV export
               </span>
             </div>
             <button
               onClick={() => onNavigateTab('reports')}
-              className="bg-[#D7141A] hover:bg-[#ba0f14] text-white p-2.5 rounded-lg transition cursor-pointer"
+              className="btn btn-sm btn-accent"
             >
               <ArrowRight size={18} />
             </button>
@@ -265,13 +257,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Two Columns: Deliveries per Area & Recent Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Deliveries Per Area Table */}
-        <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2D2D2D] space-y-3">
-          <div className="flex items-center justify-between border-b border-[#2B2B2B] pb-3">
-            <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-              <Truck size={18} className="text-[#D7141A]" />
+        <div className="p-5 space-y-3 panel">
+          <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+            <h3 className="display flex items-center gap-2 text-2xl">
+              <Truck size={18} className="text-brand-accent-deep" />
               <span>Deliveries Per Area</span>
             </h3>
-            <span className="text-xs text-neutral-400 font-semibold">Active Dispatch</span>
+            <span className="text-sm text-ink-soft font-semibold">Active Dispatch</span>
           </div>
 
           <div className="space-y-2">
@@ -280,16 +272,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               return (
                 <div
                   key={area.id}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-neutral-900 border border-neutral-800 text-xs"
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-white border border-ink/10 text-sm"
                 >
                   <div>
-                    <span className="font-bold text-white block">{area.name}</span>
-                    <span className="text-neutral-500 text-[11px]">Days: {area.days.join(', ')}</span>
+                    <span className="font-bold text-ink block">{area.name}</span>
+                    <span className="text-ink-soft text-sm">Days: {area.days.join(', ')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2.5 py-1 rounded-full font-extrabold text-xs ${
-                        count > 0 ? 'bg-[#D7141A] text-white' : 'bg-neutral-800 text-neutral-500'
+                      className={`px-2.5 py-1 rounded-full font-bold text-sm ${
+                        count > 0 ? 'bg-brand-accent text-white' : 'bg-sand text-ink-soft'
                       }`}
                     >
                       {count} orders
@@ -302,17 +294,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Recent Orders Quick List */}
-        <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2D2D2D] space-y-3">
-          <div className="flex items-center justify-between border-b border-[#2B2B2B] pb-3">
-            <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-              <Clock size={18} className="text-[#FFC400]" />
+        <div className="p-5 space-y-3 panel">
+          <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+            <h3 className="display flex items-center gap-2 text-2xl">
+              <Clock size={18} className="text-brand-yellow-deep" />
               <span>Latest Customer Orders</span>
             </h3>
             <button
               onClick={() => onNavigateTab('orders')}
-              className="text-xs font-bold text-[#FFC400] hover:underline cursor-pointer"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-sm font-bold text-brand-yellow-deep hover:underline cursor-pointer"
             >
-              View Pipeline →
+              View Pipeline
             </button>
           </div>
 
@@ -321,27 +313,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div
                 key={order.id}
                 onClick={() => onNavigateTab('orders')}
-                className="p-3 bg-neutral-900 rounded-xl border border-neutral-800 hover:border-neutral-700 transition cursor-pointer flex items-center justify-between text-xs"
+                className="p-3 hover:border-ink/10 transition cursor-pointer flex items-center justify-between text-sm panel rounded-2xl"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-[#FFC400]">{order.id}</span>
-                    <span className="text-white font-semibold">{order.customerName}</span>
+                    <span className="num font-bold text-brand-yellow-deep">{order.id}</span>
+                    <span className="text-ink font-semibold">{order.customerName}</span>
                   </div>
-                  <p className="text-neutral-400 text-[11px] mt-0.5">
-                    {order.deliveryType === 'delivery' ? `🚚 ${order.area}` : '🏪 Collection'} • {order.items.length} items
+                  <p className="text-ink-soft text-sm mt-0.5">
+                    {order.deliveryType === 'delivery' ? order.area : 'Collection'} • {order.items.length} items
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="font-extrabold text-white block">{formatZAR(order.total)}</span>
+                  <span className="font-bold text-ink block">{formatZAR(order.total)}</span>
                   <span
-                    className={`inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                    className={`inline-block text-sm font-bold px-2 py-0.5 rounded-full ${
                       order.orderStatus === 'new'
-                        ? 'bg-red-950 text-red-300'
+                        ? 'bg-red-50 text-red-800'
                         : order.orderStatus === 'completed'
-                        ? 'bg-emerald-950 text-emerald-300'
-                        : 'bg-neutral-800 text-neutral-300'
+                        ? 'bg-emerald-50 text-emerald-800'
+                        : 'bg-sand text-ink-soft'
                     }`}
                   >
                     {order.orderStatus.replace(/_/g, ' ')}

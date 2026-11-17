@@ -22,7 +22,23 @@ import {
 } from './components/store/InfoPages';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { Product, Order } from './types';
-import { MapPin, Phone, MessageCircle, Clock, Search, ShieldCheck } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, Clock, Search } from 'lucide-react';
+import { FeedbackHost } from './components/ui/feedback';
+import { whatsappLink, telLink } from './utils/contact';
+import { rememberMyOrder } from './utils/myOrders';
+
+const CATALOGUE_FILTERS = [
+  'All',
+  'Meat Combos',
+  'Family Hampers',
+  'Continental Hampers',
+  'SASSA Hamper',
+  'Beke Le Beke',
+  'Bulk Meat',
+  'Deli & Ham',
+  'Bulk Packs',
+  'Specials'
+];
 
 function StoreFront() {
   const {
@@ -59,6 +75,7 @@ function StoreFront() {
   }, []);
 
   const navigateTo = (page: string) => {
+    setConfirmedOrder(null);
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (page === 'admin') {
@@ -130,7 +147,10 @@ function StoreFront() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#111111] text-neutral-100">
+    <div className="min-h-screen flex flex-col">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       {/* Global Header */}
       <Header
         onNavigateHome={() => navigateTo('store')}
@@ -147,7 +167,7 @@ function StoreFront() {
       />
 
       {/* Main Page Routing */}
-      <main className="flex-1">
+      <main id="main" className="flex-1">
         {confirmedOrder ? (
           <OrderConfirmation
             order={confirmedOrder}
@@ -193,59 +213,48 @@ function StoreFront() {
             {/* 4. FREE DELIVERY STRIP WITH AREA DAYS TABLE */}
             <FreeDeliveryStrip />
 
-            {/* 5. MAIN CATALOG / BEST SELLERS SECTION */}
-            <section id="products-section" className="py-10 bg-[#141414]">
+            {/* Catalogue */}
+            <section id="products-section" className="py-16 md:py-20 scroll-mt-28" aria-labelledby="catalogue-title">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Catalog Controls Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-heading font-extrabold uppercase tracking-wide text-white">
-                      {activeCategory === 'All'
-                        ? 'Fresh Butchery Cuts & Family Hampers'
-                        : `${activeCategory}`}
+                    <h2 id="catalogue-title" className="display text-4xl sm:text-5xl">
+                      {activeCategory === 'All' ? (
+                        <>
+                          Fresh butchery cuts and <span className="text-brand-accent">family hampers</span>
+                        </>
+                      ) : (
+                        activeCategory
+                      )}
                     </h2>
-                    <p className="text-xs sm:text-sm text-neutral-400 mt-0.5">
-                      Showing {filteredProducts.length} items ready for delivery or store collection
+                    <p className="num text-sm text-ink-soft mt-2" aria-live="polite">
+                      {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'}
                     </p>
                   </div>
 
-                  {/* Search Bar */}
-                  <div className="relative w-full md:w-72">
-                    <Search
-                      size={16}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
-                    />
+                  <div className="relative w-full md:w-80">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft" />
                     <input
-                      type="text"
-                      placeholder="Search meat, hampers, braai..."
+                      type="search"
+                      aria-label="Search the catalogue"
+                      placeholder="Search meat, hampers, braai"
+                      maxLength={60}
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-[#1F1F1F] border border-[#333] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#D7141A]"
+                      className="field pl-11"
                     />
                   </div>
                 </div>
 
-                {/* Category Pills Bar */}
-                <div className="flex gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar text-xs">
-                  {[
-                    'All',
-                    'Meat Combos',
-                    'Family Hampers',
-                    'Continental Hampers',
-                    'SASSA Hamper',
-                    'Beke Le Beke',
-                    'Bulk Meat',
-                    'Deli & Ham',
-                    'Bulk Packs',
-                    'Specials'
-                  ].map(cat => (
+                <div className="flex gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                  {CATALOGUE_FILTERS.map(cat => (
                     <button
                       key={cat}
+                      type="button"
+                      aria-pressed={activeCategory === cat}
                       onClick={() => setActiveCategory(cat)}
-                      className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition cursor-pointer ${
-                        activeCategory === cat
-                          ? 'bg-[#D7141A] text-white shadow'
-                          : 'bg-neutral-900 text-neutral-400 hover:text-white border border-[#2D2D2D]'
+                      className={`btn btn-sm whitespace-nowrap shrink-0 ${
+                        activeCategory === cat ? 'btn-primary hover:bg-ink' : 'btn-outline'
                       }`}
                     >
                       {cat}
@@ -253,107 +262,89 @@ function StoreFront() {
                   ))}
                 </div>
 
-                {/* PRODUCT CARDS GRID: 2 cols on mobile, 3-4 on desktop (Section 3.2) */}
                 {filteredProducts.length === 0 ? (
-                  <div className="bg-[#1C1C1C] rounded-2xl p-12 text-center border border-[#2B2B2B]">
-                    <p className="text-base font-bold text-neutral-300">
-                      No products found matching your filter.
-                    </p>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      Try selecting another category or clear your search query.
-                    </p>
+                  <div className="panel p-10 text-center">
+                    <h3 className="display text-3xl">Nothing matches that search</h3>
+                    <p className="text-ink-soft mt-2">Try another category or clear the search.</p>
                     <button
+                      type="button"
                       onClick={() => {
                         setActiveCategory('All');
                         setSearchQuery('');
                       }}
-                      className="mt-4 bg-[#D7141A] hover:bg-[#ba0f14] text-white text-xs font-bold py-2 px-4 rounded-lg cursor-pointer"
+                      className="btn btn-primary mt-5"
                     >
-                      View All Products
+                      Show all products
                     </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
                     {filteredProducts.map(product => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onSelect={p => setSelectedProduct(p)}
-                      />
+                      <ProductCard key={product.id} product={product} onSelect={p => setSelectedProduct(p)} />
                     ))}
                   </div>
                 )}
               </div>
             </section>
 
-            {/* 6. CONTACT BLOCK & INTERACTIVE MAP EMBED (Section 3.4) */}
-            <section className="py-12 bg-[#101010] border-t border-[#222222]">
+            {/* Visit the store */}
+            <section className="pb-4" aria-labelledby="visit-title">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                  <div className="space-y-5">
-                    <div>
-                      <span className="text-xs font-extrabold uppercase tracking-widest text-[#D7141A]">
-                        Visit Our Welkom Store
-                      </span>
-                      <h2 className="text-3xl font-heading font-extrabold uppercase text-white tracking-wide mt-1">
-                        Powermeat Butchery & Meat Wholesaler
-                      </h2>
-                      <p className="text-sm text-neutral-400 mt-1">
-                        Fresh butcher counter cuts, bulk pack collections and friendly butchery service.
-                      </p>
-                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                  <div>
+                    <h2 id="visit-title" className="display text-4xl sm:text-5xl">
+                      Visit the butchery in <span className="text-brand-accent">Welkom</span>
+                    </h2>
 
-                    <div className="space-y-3 text-xs sm:text-sm text-neutral-300">
-                      <div className="flex items-start gap-3">
-                        <MapPin size={20} className="text-[#D7141A] shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white block">Physical Store</strong>
-                          <span>{settings.address}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <Phone size={20} className="text-[#D7141A] shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white block">Butchery Counter Phones</strong>
-                          <span>057 396 3189 / 057 396 1805</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <MessageCircle size={20} className="text-[#25D366] shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white block">WhatsApp Direct Order Desk</strong>
-                          <a
-                            href={`https://wa.me/27${settings.whatsapp.replace(/^0/, '').replace(/\s+/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-400 hover:underline"
-                          >
-                            {settings.whatsapp}
+                    <ul className="num mt-8 space-y-2">
+                      <li className="flex items-start gap-3.5">
+                        <MapPin size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
+                        <span className="py-2">{settings.address}</span>
+                      </li>
+                      <li className="flex items-start gap-3.5">
+                        <Phone size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
+                        <span className="flex flex-wrap gap-x-4">
+                          <a href={telLink(settings.phone1)} className="link">
+                            {settings.phone1}
                           </a>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <Clock size={20} className="text-[#FFC400] shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="text-white block">Store Trading Hours</strong>
-                          <p className="text-neutral-400">Monday – Friday: 07:30 – 17:30</p>
-                          <p className="text-neutral-400">Saturday: 07:30 – 14:00 | Sunday: Closed</p>
-                        </div>
-                      </div>
-                    </div>
+                          <a href={telLink(settings.phone2)} className="link">
+                            {settings.phone2}
+                          </a>
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-3.5">
+                        <MessageCircle size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
+                        <a
+                          href={whatsappLink(settings.whatsapp)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="link"
+                        >
+                          WhatsApp {settings.whatsapp}
+                        </a>
+                      </li>
+                      <li className="flex items-start gap-3.5">
+                        <Clock size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
+                        <span className="py-2">
+                          {settings.tradingHours.weekdays}
+                          <br />
+                          {settings.tradingHours.saturday}
+                          <br />
+                          {settings.tradingHours.sunday}
+                        </span>
+                      </li>
+                    </ul>
                   </div>
 
-                  {/* Map Visual Frame */}
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-neutral-900 border border-[#2D2D2D] shadow-xl">
+                  <div className="frame aspect-[4/3] w-full">
                     <iframe
-                      title="Powermeat Butchery Welkom Location"
+                      title="Map showing Powermeat at 145 Power Road, Welkom"
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}
                       loading="lazy"
+                      referrerPolicy="no-referrer"
+                      sandbox="allow-scripts allow-same-origin allow-popups"
                       src="https://maps.google.com/maps?q=145%20Power%20Road,%20Welkom,%20Free%20State&t=&z=15&ie=UTF8&iwloc=&output=embed"
                     />
                   </div>
@@ -381,7 +372,9 @@ function StoreFront() {
         onClose={() => setIsCheckoutOpen(false)}
         onOrderComplete={newOrder => {
           setIsCheckoutOpen(false);
+          rememberMyOrder(newOrder.id);
           setConfirmedOrder(newOrder);
+          window.scrollTo({ top: 0 });
         }}
       />
 
@@ -401,6 +394,7 @@ export default function App() {
   return (
     <StoreProvider>
       <StoreFront />
+      <FeedbackHost />
     </StoreProvider>
   );
 }
