@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import { useBackToClose } from '../../utils/backButton';
 
 /* Site-wide feedback: toasts for results and one confirmation dialog that
    replaces the browser's own "this site says" pop-ups. */
@@ -48,6 +49,9 @@ export const FeedbackHost: React.FC = () => {
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  // Back answers a confirmation with Cancel.
+  useBackToClose(!!request, () => finishRef.current(false));
+  const finishRef = useRef<(ok: boolean) => void>(() => {});
 
   useEffect(() => {
     pushToast = t => {
@@ -77,6 +81,7 @@ export const FeedbackHost: React.FC = () => {
     request?.resolve(ok);
     setRequest(null);
   };
+  finishRef.current = finish;
 
   return (
     <>

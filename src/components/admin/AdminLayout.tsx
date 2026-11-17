@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useBackToClose, forgetOpenLayers } from '../../utils/backButton';
 import { X } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { Role } from '../../types';
@@ -57,7 +58,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
   const setActiveTab = (tab: string) => {
     setTab(tab);
     const target = tab === 'dashboard' ? '#admin' : `#admin/${tab}`;
-    if (window.location.hash !== target) window.history.pushState(null, '', target);
+    // Moving section from inside an open form: the form's Back step becomes the section.
+    if (forgetOpenLayers()) window.history.replaceState(null, '', target);
+    else if (window.location.hash !== target) window.history.pushState(null, '', target);
     window.scrollTo({ top: 0 });
   };
   const [loginEmailInput, setLoginEmailInput] = useState('');
@@ -66,6 +69,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
   // Manual Order Modal (+ New Order)
   const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  // Back closes these windows first.
+  useBackToClose(isManualOrderOpen, () => setIsManualOrderOpen(false));
   const [manualCustomerName, setManualCustomerName] = useState('');
   const [manualCustomerCell, setManualCustomerCell] = useState('');
   const [manualDeliveryType, setManualDeliveryType] = useState<'delivery' | 'collection'>('collection');
