@@ -1,78 +1,79 @@
 import React from 'react';
 
+/* The Powermeat logo, redrawn from the shop sign: outlined bull horns whose left
+   cheek frames the "P", and an upright, heavy condensed wordmark. Drawn as SVG so it
+   stays sharp at any size and works on light and dark backgrounds. */
+
+const HORNS =
+  'M155 88 C130 120 105 175 120 225 C135 262 170 270 210 270 L585 270 C640 262 665 190 640 140 ' +
+  'C625 112 605 95 585 88 C600 130 610 190 585 222 C575 236 560 240 545 240 L215 240 ' +
+  'C180 240 160 215 158 175 C157 140 158 110 155 88 Z';
+const CHEEK = 'M122 236 C140 285 190 300 272 302 L296 578 L440 578';
+
+const RED = '#D7141A';
+// On dark surfaces the sign's brighter red reads better.
+const RED_ON_DARK = '#F2262B';
+
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showTagline?: boolean;
+  /** Set when the logo sits on a dark surface (footer, staff header). */
+  onDark?: boolean;
 }
 
-export const Logo: React.FC<LogoProps> = ({
-  className = '',
-  size = 'md',
-  showTagline = false
-}) => {
-  const sizeMap = {
-    sm: { icon: 24, text: 'text-xl', sub: 'text-[9px]' },
-    md: { icon: 34, text: 'text-2xl', sub: 'text-[11px]' },
-    lg: { icon: 44, text: 'text-3xl', sub: 'text-xs' },
-    xl: { icon: 60, text: 'text-5xl', sub: 'text-sm' }
-  };
+const HEIGHT = { sm: 34, md: 44, lg: 56, xl: 72 };
 
-  const currentSize = sizeMap[size];
-
+export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md', showTagline = false, onDark = false }) => {
+  const color = onDark ? RED_ON_DARK : RED;
+  const height = HEIGHT[size];
   return (
-    <div className={`flex items-center gap-2.5 select-none ${className}`}>
-      {/* Bull-horn outline logo icon */}
-      <div className="relative flex items-center justify-center shrink-0">
-        <svg
-          width={currentSize.icon}
-          height={currentSize.icon}
-          viewBox="0 0 100 100"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="text-[#D7141A] transition-transform duration-200 hover:scale-105"
-        >
-          {/* Sweeping sharp bull horns */}
-          <path
-            d="M 12,20 C 18,36 32,54 44,60 C 34,50 26,38 24,22 C 22,12 14,8 12,20 Z"
-            fill="currentColor"
-          />
-          <path
-            d="M 88,20 C 82,36 68,54 56,60 C 66,50 74,38 76,22 C 78,12 86,8 88,20 Z"
-            fill="currentColor"
-          />
-          {/* Muscular bull head & brow */}
-          <path
-            d="M 28,32 C 38,36 62,36 72,32 C 68,44 64,54 62,70 C 60,78 54,84 50,86 C 46,84 40,78 38,70 C 36,54 32,44 28,32 Z"
-            stroke="currentColor"
-            strokeWidth="5"
-            strokeLinejoin="round"
-            fill="#1A1A1A"
-          />
-          {/* Piercing brow ridge & nostrils */}
-          <path
-            d="M 38,46 L 50,54 L 62,46"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          <circle cx="44" cy="74" r="2.5" fill="currentColor" />
-          <circle cx="56" cy="74" r="2.5" fill="currentColor" />
-        </svg>
-      </div>
-
-      <div className="flex flex-col">
-        <span
-          className={`font-display italic font-extrabold tracking-wider text-[#D7141A] leading-none ${currentSize.text} uppercase drop-shadow-sm`}
+    <span className={`inline-flex flex-col items-start gap-1.5 select-none ${className}`}>
+      <svg
+        viewBox="95 70 1790 525"
+        height={height}
+        width={(height * 1790) / 525}
+        role="img"
+        aria-label="Powermeat"
+        className="block shrink-0"
+      >
+        <g fill="none" stroke={color} strokeWidth="18" strokeLinejoin="round" strokeLinecap="round">
+          <path d={HORNS} />
+          <path d={CHEEK} />
+        </g>
+        <text
+          x="392"
+          y="548"
+          fill={color}
+          fontSize="285"
+          textLength="1475"
+          lengthAdjust="spacingAndGlyphs"
+          style={{ fontFamily: 'var(--font-logo)' }}
         >
           POWERMEAT
+        </text>
+      </svg>
+      {showTagline && (
+        <span className={`${onDark ? 'text-white/80' : 'text-ink-soft'} text-sm font-medium leading-tight`}>
+          Meat so good, it hits different!
         </span>
-        {showTagline && (
-          <span className={`text-neutral-400 font-sans tracking-tight font-medium ${currentSize.sub}`}>
-            Meat so good, it hits different!
-          </span>
-        )}
-      </div>
-    </div>
+      )}
+    </span>
   );
 };
+
+/** The horns on their own, for empty photo frames and small spaces. */
+export const LogoMark: React.FC<{ size?: number; className?: string }> = ({ size = 34, className = '' }) => (
+  <svg
+    viewBox="95 70 580 520"
+    width={size}
+    height={size}
+    aria-hidden="true"
+    className={className}
+  >
+    <g fill="none" stroke={RED} strokeWidth="22" strokeLinejoin="round" strokeLinecap="round">
+      <path d={HORNS} />
+      <path d={CHEEK} />
+    </g>
+  </svg>
+);

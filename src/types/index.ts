@@ -160,3 +160,14 @@ export interface SiteSettings {
   onlinePaymentEnabled: boolean; // toggled off by default
   blockedDates: string[]; // YYYY-MM-DD
 }
+
+/** An Owner's invitation for a person to join the staff with a given role. */
+export interface StaffInvite {
+  id: string; // the invited email, lower case
+  email: string;
+  name: string;
+  phone?: string;
+  role: Role;
+  invitedBy: string;
+  createdAt: string;
+}

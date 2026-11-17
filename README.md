@@ -8,23 +8,45 @@ A mobile-first e-commerce web platform and central administrative back-office bu
 
 ---
 
-## 1. Demo Logins (Seeded for Instant Access)
+## 1. Going live: what is set up and what you do once
 
-The platform includes seeded accounts for all 4 operational roles. You can sign in using the credentials below, or click any role in the **Role Switcher** bar at the top of the `/admin` screen for instant testing:
+The site runs on **GitHub Pages** and stores everything in the **Firebase project `powermeat-8e3ff`**.
 
-| Role | Email | Password | Permissions & Responsibilities |
-|---|---|---|---|
-| **Owner / Admin** | `owner@powermeat.co.za` | `Powermeat#2026` | Full system access: products, prices, bulk price updates, specials, settings, staff accounts, financial reports, delete actions. |
-| **Store Manager** | `manager@powermeat.co.za` | `Manager#2026` | Catalog CRUD, hamper builder, specials, orders pipeline, area delivery days schedule, and sales reports. |
-| **Counter Staff** | `counter@powermeat.co.za` | `Counter#2026` | Order processing, butcher scale weigh & adjust for per-kg items, mark ready for collection, capture walk-in/phone/WhatsApp orders. |
-| **Delivery Driver** | `driver@powermeat.co.za` | `Driver#2026` | Sees only their assigned town deliveries for the day. Can mark Out for Delivery / Delivered / Failed with notes, and record cash collected. |
+**Already done in the code**
+- Orders, products, specials, delivery areas, settings, staff and the activity log live in Cloud Firestore.
+- Staff sign in with Google or email and password (Firebase Authentication). Customers can sign in with Google on *Track my order* to see live status.
+- `firestore.rules` decides who may read and change what. `npm run test:rules` proves it with 68 forged-request tests.
+- `.github/workflows/deploy.yml` runs the type check, unit tests, rule tests and dependency scan on every pull request, and on `main` builds and publishes to GitHub Pages.
+
+**One-time steps in your accounts (in this order)**
+1. **Publish the database rules.** Firebase console → Firestore Database → Rules → paste the whole of `firestore.rules` → Publish. Do this before the site goes live.
+2. **Allow the website address to sign in.** Firebase console → Authentication → Settings → Authorised domains → add `inno202.github.io`.
+3. **Turn on GitHub Pages.** GitHub repo → Settings → Pages → Source: **GitHub Actions**. Then merge to `main` (or re-run the workflow). The site appears at `https://inno202.github.io/Powermeat/`.
+4. **Make yourself Owner.** Open `https://inno202.github.io/Powermeat/#admin`, sign in, and follow *Setting up as the Owner for the first time?* (it shows your account code and the four fields to add in Firestore).
+5. **Load the catalogue.** In the staff area: Settings → *Load the starting catalogue*. Then edit products and prices as needed.
+6. **Invite staff.** Staff → *Invite staff* (name, email, role). They sign in with that email using Google, or choose *Create a password* and confirm their email.
+
+**Recommended next**
+- Firebase console → App Check → register the web app with reCAPTCHA, then enforce it for Firestore (blocks bots placing fake orders).
+- Google Cloud console → APIs & Services → Credentials → restrict the browser API key to `inno202.github.io/*` and `localhost`.
+- Authentication → Settings → keep *Email enumeration protection* on.
+
+### Demo mode (optional)
+`VITE_DEMO_MODE=true npm run dev` runs a password-free demo with sample data kept in the browser only, with these emails:
+
+| Role | Email | What they can do |
+|---|---|---|
+| **Owner** | `owner@powermeat.co.za` | Everything: products, prices, specials, settings, staff accounts, reports, deleting. |
+| **Store manager** | `manager@powermeat.co.za` | Products, hamper builder, specials, orders, delivery days, reports. |
+| **Counter staff** | `counter@powermeat.co.za` | Process orders, weigh and adjust per-kg items, capture walk-in / phone / WhatsApp orders. |
+| **Delivery driver** | `driver@powermeat.co.za` | Their own deliveries only: out for delivery, delivered or failed, cash collected. |
 
 ---
 
 ## 2. Key Features
 
 ### 2.1 Customer Storefront (`/`)
-- **Brand Identity:** High-contrast charcoal and Powermeat Red (`#D7141A`) with yellow starburst price badges (`#FFC400`).
+- **Brand Identity:** The Powermeat horn logo and red (`#D7141A`) with yellow price badges (`#FFC400`), on a warm off-white page with upright serif headings (Cormorant Garamond) and a clean sans for everything else (DM Sans).
 - **Navigate Drawer:** Top utility bar with cart count badge; black main header with "Navigate" outlined button opening a full-width slide-down drawer with expandable submenus for Hampers and Butchery cuts.
 - **Product Catalog & Detail View:** Square card grid (2 columns on mobile, 4 on desktop), "Image varies from product" overlay, "What's inside" hamper breakdown tabs, and 0.5kg quantity steppers for per-kg items with estimated totals and butcher scale weighing disclaimers.
 - **Free Delivery Guarantee:** Free delivery applies automatically to **any order containing a Family Hamper or Meat Combo**.
@@ -48,8 +70,8 @@ The platform includes seeded accounts for all 4 operational roles. You can sign 
 
 ## 3. Technology Stack
 
-- **Frontend:** React 19, TypeScript, Tailwind CSS v4, Lucide Icons, Motion.
-- **Architecture:** Client-authoritative state store with resilient local storage persistence and full dual-mode Firebase integration ready for cloud deployment.
+- **Frontend:** React 19, TypeScript, Tailwind CSS v4, Lucide Icons.
+- **Architecture:** React front end on GitHub Pages; Cloud Firestore and Firebase Authentication; all permissions enforced by `firestore.rules`.
 - **Security:** ABAC role-based rules (`firestore.rules`), intermediate schema definition (`firebase-blueprint.json`), and comprehensive threat modeling (`security_spec.md`).
 
 ---
@@ -62,10 +84,17 @@ The platform includes seeded accounts for all 4 operational roles. You can sign 
 npm install
 
 # 2. Run unit tests (Pricing, delivery cut-offs, order numbers)
-npx tsx --test src/utils/pricing.test.ts src/utils/delivery.test.ts
+npm test
 
-# 3. Start development server on port 3000
+# 3. Run the database rule tests (needs Java; starts a local Firestore emulator)
+npm run test:rules
+
+# 4. Start the site on port 3000 (uses the live Firebase project)
 npm run dev
+
+# Or against local Firebase emulators (no live data touched)
+npx firebase-tools emulators:start --only firestore,auth --project demo-powermeat
+VITE_USE_EMULATORS=true npm run dev
 ```
 
 ### Production Build
@@ -73,28 +102,9 @@ npm run dev
 npm run build
 ```
 
-### Connecting Live Firebase
-1. Create a Firebase project in the [Firebase Console](https://console.firebase.google.com).
-2. Enable **Firestore Database** and **Firebase Authentication**.
-3. Place your Firebase credentials in `firebase-applet-config.json` in the project root:
-```json
-{
-  "apiKey": "AIzaSy...",
-  "authDomain": "your-project.firebaseapp.com",
-  "projectId": "your-project-id",
-  "storageBucket": "your-project.appspot.com",
-  "messagingSenderId": "...",
-  "appId": "..."
-}
-```
-4. Deploy the production security rules:
-```bash
-firebase deploy --only firestore:rules
-```
-
 ### How to Add New Staff Accounts
-1. Log in to `/admin` as the **Owner** (`owner@powermeat.co.za`).
-2. Navigate to **Staff Management** in the left sidebar.
-3. Click **+ Add Staff Account**.
-4. Enter their full name, email, cell phone, and select their operational role (Manager, Counter Staff, or Driver).
-5. Accounts are preserved in the system and can be **deactivated** at any time without losing order historical logs.
+1. Sign in to the staff area (`#admin`) as the **Owner**.
+2. Open **Staff** and choose **Invite staff**.
+3. Enter their name, email, cell phone and role (Manager, Counter staff or Driver).
+4. They sign in with that email. Their account is created with exactly that role.
+5. Accounts can be **deactivated** at any time without losing order history.

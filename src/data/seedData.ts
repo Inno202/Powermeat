@@ -23,7 +23,7 @@ export const SEED_SETTINGS: SiteSettings = {
   },
   heroTitle: 'Meat so good, it hits different!',
   heroSubtitle: 'Fresh butchery hampers, combos, bulk meat and daily specials direct to your door in Welkom and the Goldfields.',
-  announcementBarText: '🥩 FREE DELIVERY on all Family Hampers & Meat Combos! Order before 12:00 for next delivery day.',
+  announcementBarText: 'Free delivery on all Family Hampers and Meat Combos. Order before 12:00 for the next delivery day.',
   announcementBarActive: true,
   cutoffTime: '12:00',
   onlinePaymentEnabled: false, // switched off by default

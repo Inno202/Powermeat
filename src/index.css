@@ -1,50 +1,268 @@
+/* Powermeat Welkom - clean house style (Tailwind CSS 4).
+   One small system: .btn (+ -primary -accent -outline -danger -danger-solid -light
+   -outline-light -whatsapp -sm -lg -block), .icon-btn, .link, .field (+ -label -help
+   -error), .display, .panel, .frame, .lift, .photo-zoom, .num, .price-tag, .badge,
+   .confirm-dialog, .toast-in, .hero-rise, .skip-link. */
+
 @import "tailwindcss";
 
 @theme {
-  --font-display: 'Bebas Neue', 'Oswald', sans-serif;
-  --font-heading: 'Oswald', 'Bebas Neue', sans-serif;
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Body and interface: a calm, upright sans. Headings: a high-contrast serif.
+     Anton is used for the Powermeat wordmark only. */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-logo: "Anton", "Impact", "Arial Narrow", sans-serif;
 
-  --color-pm-red: #D7141A;
-  --color-pm-red-hover: #ba0f14;
-  --color-pm-red-dark: #8F0A0E;
-  --color-pm-black: #111111;
-  --color-pm-charcoal: #1A1A1A;
-  --color-pm-surface: #222222;
-  --color-pm-card: #282828;
-  --color-pm-card-hover: #323232;
-  --color-pm-border: #383838;
-  --color-pm-yellow: #FFC400;
-  --color-pm-yellow-dark: #E6B000;
+  /* Brand: Powermeat red and the yellow of the price badges. */
+  --color-brand-accent: #D7141A;
+  /* One step deeper, for small red text on light backgrounds (AA contrast). */
+  --color-brand-accent-deep: #B30E13;
+  /* One step lighter, for red text on dark or photographic backgrounds. */
+  --color-brand-accent-soft: #FF8A8D;
+  --color-brand-yellow: #FFC400;
+  /* The same yellow, deep enough to read as small text on white. */
+  --color-brand-yellow-deep: #7A5600;
+  --color-whatsapp: #25D366;
+
+  /* Neutrals carry a trace of warmth instead of pure grey. */
+  --color-ink: #0B0B0C;
+  --color-charcoal: #1A1A1C;
+  --color-paper: #FAF9F6;
+  --color-sand: #F1EEE8;
+  --color-ink-soft: #55534E;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {
+  html {
+    /* Scale type down gently on small phones. Tap targets are set in px, not rem. */
+    font-size: clamp(14px, 1.2vw + 10px, 16px);
+    scrollbar-color: color-mix(in srgb, var(--color-ink) 35%, transparent) transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
-    font-family: var(--font-sans);
-    background-color: #111111;
-    color: #F3F4F6;
-    overflow-x: hidden;
+    @apply bg-paper text-ink font-sans antialiased overflow-x-hidden;
+    caret-color: var(--color-brand-accent);
+    line-height: 1.6;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  /* No italics anywhere. */
+  em, i { font-style: normal; }
+  /* The serif's default figures sit low; use full-height figures. */
+  .font-serif, .display { font-variant-numeric: lining-nums; }
+  p, li, dd {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--color-brand-accent);
+    color: #fff;
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  button:not(:disabled), [role="button"], select, label[for], summary {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  /* Tables of figures line up. */
+  table { font-variant-numeric: lining-nums tabular-nums; }
+}
+
+@layer components {
+  /* ---- Buttons: one pill shape, a few colours ---- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2.5 min-h-[48px] px-6 py-3 rounded-full font-sans font-semibold text-[0.95rem] leading-tight text-center select-none;
+    transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), transform 0.16s var(--ease-out);
+  }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.55; }
+  .btn > .btn-arrow { transition: transform 0.25s var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover:not(:disabled) > .btn-arrow { transform: translateX(3px); }
+  }
+  .btn-sm { @apply min-h-[44px] px-4 py-2 text-sm gap-2; }
+  .btn-lg { @apply min-h-[54px] px-7 text-base; }
+  .btn-block { @apply w-full; }
+  .btn-primary { @apply bg-ink text-white hover:bg-brand-accent; }
+  .btn-accent { @apply bg-brand-accent text-white hover:bg-ink; }
+  .btn-outline { @apply border border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-white; }
+  .btn-danger { @apply border border-brand-accent/60 text-brand-accent-deep hover:bg-brand-accent hover:text-white hover:border-brand-accent; }
+  .btn-danger-solid { @apply bg-brand-accent-deep text-white hover:bg-ink; }
+  /* On photographs and dark surfaces */
+  .btn-light { @apply bg-white text-ink hover:bg-brand-accent hover:text-white; }
+  .btn-outline-light { @apply border border-white/60 text-white hover:bg-white hover:text-ink hover:border-white; }
+  /* WhatsApp's own green, with dark text so it stays readable. */
+  .btn-whatsapp { @apply bg-whatsapp text-ink hover:bg-ink hover:text-white; }
+
+  /* Round icon-only control, always at least 44px. */
+  .icon-btn {
+    @apply inline-flex items-center justify-center w-[44px] h-[44px] rounded-full shrink-0;
+    transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.16s var(--ease-out);
+  }
+  .icon-btn:active:not(:disabled) { transform: scale(0.94); }
+
+  .link {
+    @apply inline-flex items-center min-h-[44px] font-semibold text-ink underline hover:text-brand-accent-deep;
+    transition: color 0.2s var(--ease-out);
   }
 
-  h1, h2, h3, .font-heading {
-    font-family: var(--font-heading);
-    letter-spacing: 0.025em;
+  /* ---- Form fields ---- */
+  .field {
+    @apply w-full min-h-[48px] px-4 py-2.5 bg-white border border-ink/25 rounded-xl text-base text-ink placeholder:text-ink/55;
+    transition: border-color 0.2s var(--ease-out);
+  }
+  .field:focus { border-color: var(--color-ink); }
+  .field[aria-invalid="true"] { border-color: #b91c1c; }
+  .field-label { @apply block text-sm font-semibold mb-2 text-ink; }
+  .field-help { @apply text-sm text-ink-soft mt-1.5; }
+  .field-error { @apply text-sm font-semibold text-red-700 mt-1.5; }
+
+  /* ---- Headings: upright serif, sentence case ---- */
+  .display { @apply font-serif font-semibold tracking-[-0.015em] leading-[1.02]; }
+
+  /* A quiet panel: one radius, a hairline, no heavy shadow. */
+  .panel { @apply bg-white rounded-3xl border border-ink/[0.07]; }
+
+  /* Photo frames share one radius. */
+  .frame { @apply overflow-hidden rounded-3xl bg-sand; }
+
+  /* Prices, counts and references line up when their digits share a width. */
+  .num {
+    font-variant-numeric: lining-nums tabular-nums;
   }
 
-  .font-display {
-    font-family: var(--font-display);
-    letter-spacing: 0.05em;
+  /* The yellow Powermeat price badge. */
+  .price-tag {
+    @apply inline-flex items-baseline gap-1 bg-brand-yellow text-ink font-bold rounded-full px-3 py-1 text-sm;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* Badges are only for real state (special, free delivery, order status). */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold leading-none;
   }
 }
 
-/* Custom price burst badge */
-.price-starburst {
-  position: relative;
-  background: #FFC400;
-  color: #111111;
-  font-weight: 800;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
-  box-shadow: 0 4px 12px rgba(255, 196, 0, 0.35);
+/* Keyboard focus is always visible, on any surface. Unlayered on purpose, so
+   `outline-none` utilities in the markup cannot switch it off. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px #fff;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 300;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-ink);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: top 0.2s var(--ease-out-expo);
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* The hero text rises gently into place. */
+.hero-rise > * {
+  animation: hero-rise 0.9s var(--ease-out-expo) both;
+}
+.hero-rise > :nth-child(2) { animation-delay: 80ms; }
+.hero-rise > :nth-child(3) { animation-delay: 160ms; }
+.hero-rise > :nth-child(4) { animation-delay: 240ms; }
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(18px); }
+}
+
+/* Hero slideshow: photos cross-fade with a slow push-in. */
+.slide { opacity: 0; transition: opacity 1.2s ease; }
+.slide[data-active="true"] { opacity: 1; }
+.slide[data-active="true"] img { animation: slow-zoom 9s linear both; }
+@keyframes slow-zoom { from { transform: scale(1.06); } to { transform: scale(1); } }
+
+/* Linked cards lift slightly on pointer devices. */
+.lift { transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .lift:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.35); }
+}
+
+/* Drawers and sheets settle in. */
+.sheet-in {
+  transition: opacity 0.25s var(--ease-out), transform 0.3s var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(12px); }
+}
+.drawer-in {
+  transition: transform 0.3s var(--ease-out);
+  @starting-style { transform: translateX(100%); }
+}
+
+.toast-in {
+  transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Confirmation dialog: a small card that settles in from slightly below. */
+.confirm-dialog {
+  margin: auto;
+  width: calc(100% - 2rem);
+  max-width: 28rem;
+  padding: 0;
+  border: 0;
+  border-radius: 1.25rem;
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: 0 32px 80px -24px rgb(0 0 0 / 0.6);
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+.confirm-dialog::backdrop {
+  background: rgb(10 10 10 / 0.6);
+  transition: opacity 0.2s var(--ease-out);
+  @starting-style { opacity: 0; }
+}
+
+/* A photo inside its frame eases in slightly on hover (pointer devices only). */
+.photo-zoom { transition: transform 0.6s var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .photo-zoom { transform: scale(1.03); }
+}
+
+/* People who ask for less motion still get every state change, without the travel. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  .slide[data-active="true"] img { animation: none; }
+  .animate-spin, .animate-pulse {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+  }
+  * {
+    transition-property: color, background-color, border-color, opacity, box-shadow !important;
+  }
 }
 
 /* Print styles for thermal 80mm and A4 slips */

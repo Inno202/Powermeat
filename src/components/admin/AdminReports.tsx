@@ -75,17 +75,17 @@ export const AdminReports: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-extrabold uppercase text-white tracking-wide">
+          <h2 className="display text-3xl">
             Sales & Operational Butchery Reports
           </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <p className="text-sm text-ink-soft mt-0.5">
             Breakdowns by category, top 10 bestselling butcher cuts, and delivery distributions.
           </p>
         </div>
 
         <button
           onClick={handleExportReportCSV}
-          className="bg-neutral-800 hover:bg-neutral-700 text-[#FFC400] border border-[#3E3E3E] text-xs font-bold py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+          className="btn btn-sm btn-outline"
         >
           <Download size={15} />
           <span>Export Sales CSV</span>
@@ -95,22 +95,22 @@ export const AdminReports: React.FC = () => {
       {/* Grid: Category Sales + Fulfillment Split */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Category Sales Breakdown */}
-        <div className="lg:col-span-2 bg-[#1A1A1A] p-5 rounded-2xl border border-[#2D2D2D] space-y-4">
-          <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-            <PieChart size={18} className="text-[#D7141A]" />
+        <div className="lg:col-span-2 p-5 space-y-4 panel">
+          <h3 className="display flex items-center gap-2 text-2xl">
+            <PieChart size={18} className="text-brand-accent-deep" />
             <span>Revenue by Butchery Category</span>
           </h3>
 
           <div className="space-y-3">
             {Object.entries(categorySales).map(([cat, data]) => (
               <div key={cat} className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-white">{cat}</span>
-                  <span className="text-[#FFC400] font-bold">{formatZAR(data.total)} ({data.count} units/kg)</span>
+                <div className="flex justify-between text-sm font-semibold">
+                  <span className="text-ink">{cat}</span>
+                  <span className="text-brand-yellow-deep font-bold">{formatZAR(data.total)} ({data.count} units/kg)</span>
                 </div>
-                <div className="w-full bg-neutral-900 rounded-full h-2 overflow-hidden border border-neutral-800">
+                <div className="w-full bg-white rounded-full h-2 overflow-hidden border border-ink/10">
                   <div
-                    className="bg-[#D7141A] h-full rounded-full transition-all duration-500"
+                    className="bg-brand-accent h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${Math.min(100, Math.max(8, (data.total / 4000) * 100))}%`
                     }}
@@ -122,29 +122,29 @@ export const AdminReports: React.FC = () => {
         </div>
 
         {/* Fulfillment & Payment Breakdown */}
-        <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2D2D2D] space-y-5">
-          <h3 className="font-heading font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-            <TrendingUp size={18} className="text-[#FFC400]" />
+        <div className="p-5 space-y-5 panel">
+          <h3 className="display flex items-center gap-2 text-2xl">
+            <TrendingUp size={18} className="text-brand-yellow-deep" />
             <span>Fulfillment Split</span>
           </h3>
 
-          <div className="space-y-3 text-xs">
-            <div className="p-3 bg-neutral-900 rounded-xl border border-neutral-800 flex justify-between items-center">
+          <div className="space-y-3 text-sm">
+            <div className="p-3 flex justify-between items-center panel rounded-2xl">
               <div>
-                <span className="font-bold text-white block">🚚 Deliveries</span>
-                <span className="text-neutral-500 text-[11px]">Free State distribution</span>
+                <span className="font-bold text-ink block">Deliveries</span>
+                <span className="text-ink-soft text-sm">Free State distribution</span>
               </div>
-              <span className="text-base font-extrabold text-[#D7141A] font-mono">
+              <span className="text-base font-bold text-brand-accent-deep num">
                 {deliveryCount} ({orders.length > 0 ? Math.round((deliveryCount / orders.length) * 100) : 0}%)
               </span>
             </div>
 
-            <div className="p-3 bg-neutral-900 rounded-xl border border-neutral-800 flex justify-between items-center">
+            <div className="p-3 flex justify-between items-center panel rounded-2xl">
               <div>
-                <span className="font-bold text-white block">🏪 Collections</span>
-                <span className="text-neutral-500 text-[11px]">In-store counter pickups</span>
+                <span className="font-bold text-ink block">Collections</span>
+                <span className="text-ink-soft text-sm">In-store counter pickups</span>
               </div>
-              <span className="text-base font-extrabold text-[#FFC400] font-mono">
+              <span className="text-base font-bold text-brand-yellow-deep num">
                 {collectionCount} ({orders.length > 0 ? Math.round((collectionCount / orders.length) * 100) : 0}%)
               </span>
             </div>
@@ -153,15 +153,15 @@ export const AdminReports: React.FC = () => {
       </div>
 
       {/* Top 10 Best Sellers Table */}
-      <div className="bg-[#1A1A1A] rounded-2xl border border-[#2D2D2D] overflow-hidden shadow-xl">
-        <div className="p-4 bg-[#141414] border-b border-[#2D2D2D]">
-          <h3 className="font-heading font-bold text-base uppercase text-white tracking-wider">
+      <div className="overflow-hidden panel">
+        <div className="p-4 bg-paper border-b border-ink/10">
+          <h3 className="display text-2xl">
             Top 10 Bestselling Products
           </h3>
         </div>
 
-        <table className="w-full text-left text-xs">
-          <thead className="bg-[#111111] text-neutral-400 uppercase font-bold text-[10px] border-b border-[#2D2D2D]">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-paper text-ink-soft font-bold text-sm border-b border-ink/10">
             <tr>
               <th className="py-3 px-4">Rank</th>
               <th className="py-3 px-4">Product Name</th>
@@ -170,14 +170,14 @@ export const AdminReports: React.FC = () => {
               <th className="py-3 px-4 text-right">Total Revenue</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#262626]">
+          <tbody className="divide-y divide-ink/10">
             {top10Products.map((p, idx) => (
-              <tr key={idx} className="hover:bg-neutral-800/40 transition">
-                <td className="py-3 px-4 font-mono font-bold text-neutral-500">#{idx + 1}</td>
-                <td className="py-3 px-4 font-bold text-white">{p.name}</td>
-                <td className="py-3 px-4 text-neutral-400">{p.category}</td>
-                <td className="py-3 px-4 text-center font-bold text-neutral-200">{p.qty}</td>
-                <td className="py-3 px-4 text-right font-extrabold text-[#FFC400]">
+              <tr key={idx} className="hover:bg-sand/40 transition">
+                <td className="py-3 px-4 num font-bold text-ink-soft">#{idx + 1}</td>
+                <td className="py-3 px-4 font-bold text-ink">{p.name}</td>
+                <td className="py-3 px-4 text-ink-soft">{p.category}</td>
+                <td className="py-3 px-4 text-center font-bold text-ink">{p.qty}</td>
+                <td className="py-3 px-4 text-right font-bold text-brand-yellow-deep">
                   {formatZAR(p.revenue)}
                 </td>
               </tr>

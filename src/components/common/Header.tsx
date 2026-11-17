@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, User, Menu, X, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, MapPin } from 'lucide-react';
 import { Logo } from './Logo';
 import { useStore } from '../../services/store';
 
@@ -24,99 +24,74 @@ export const Header: React.FC<HeaderProps> = ({
   } = useStore();
 
   return (
-    <header className="sticky top-0 z-40 w-full shadow-md">
-      {/* 1. TOP UTILITY BAR (POWERMEAT RED) */}
-      <div className="bg-[#D7141A] text-white px-4 py-1.5 text-xs font-semibold">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="hidden sm:flex items-center gap-2 truncate">
-            <span className="font-bold tracking-wide">📍 {settings.address}</span>
-            <span className="text-red-200">|</span>
-            <span className="text-red-100 truncate">{settings.announcementBarText}</span>
-          </div>
-          <div className="sm:hidden text-[11px] font-bold truncate">
-            📍 Welkom & Free State Deliveries
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            {/* My Orders */}
-            <button
-              onClick={onNavigateMyOrders}
-              className="hover:underline flex items-center gap-1 cursor-pointer text-white/90 hover:text-white"
-            >
-              <span>Track / My Orders</span>
-            </button>
-
-            <span className="text-red-300">|</span>
-
-            {/* Account / Admin Portal */}
-            <button
-              onClick={onNavigateAdmin}
-              className="flex items-center gap-1.5 hover:underline cursor-pointer bg-black/20 hover:bg-black/30 px-2 py-0.5 rounded transition text-xs"
-            >
-              <User size={13} />
-              {currentUser ? (
-                <span className="flex items-center gap-1">
-                  <span className="font-bold">{currentUser.name.split(' ')[0]}</span>
-                  <span className="bg-[#FFC400] text-black text-[9px] uppercase px-1 rounded font-extrabold">
-                    {currentUser.role}
-                  </span>
-                </span>
-              ) : (
-                <span>Staff Portal</span>
-              )}
-            </button>
-
-            {/* Cart Icon with round count badge */}
-            <button
-              onClick={() => setIsCartDrawerOpen(true)}
-              aria-label={`Cart with ${cartItemCount} items`}
-              className="relative flex items-center justify-center p-1 hover:scale-105 transition cursor-pointer ml-1"
-            >
-              <ShoppingCart size={18} className="text-white" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-[#FFC400] text-neutral-950 text-[11px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center shadow-md">
-                  {cartItemCount}
-                </span>
-              )}
-            </button>
+    <header className="sticky top-0 z-40 w-full bg-paper/95 backdrop-blur border-b border-ink/10">
+      {settings.announcementBarActive && settings.announcementBarText && (
+        <div className="bg-ink text-white text-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-center gap-2 text-center text-xs sm:text-sm leading-snug">
+            <MapPin size={16} className="shrink-0 text-brand-yellow hidden sm:block" />
+            <span>{settings.announcementBarText}</span>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* 2. MAIN HEADER (BLACK) */}
-      <div className="bg-[#111111] border-b border-[#2B2B2B] px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo on the left */}
-          <div
-            onClick={onNavigateHome}
-            className="cursor-pointer"
-            role="button"
-            tabIndex={0}
-            aria-label="Powermeat Home"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={onNavigateHome}
+          aria-label="Powermeat home"
+          className="rounded-xl min-h-[44px] flex items-center"
+        >
+          <span className="hidden sm:block">
+            <Logo size="md" />
+          </span>
+          <span className="sm:hidden">
+            <Logo size="sm" />
+          </span>
+        </button>
+
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={onNavigateMyOrders}
+            className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
           >
-            <Logo size="md" showTagline={true} />
-          </div>
+            My orders
+          </button>
 
-          {/* Right side: Outlined "Navigate" button */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsNavDrawerOpen(!isNavDrawerOpen)}
-              aria-label={isNavDrawerOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
-              className="flex items-center gap-2 border-2 border-neutral-400 hover:border-[#D7141A] text-white hover:text-[#D7141A] px-3.5 py-1.5 rounded-lg transition-colors font-bold text-sm tracking-wide cursor-pointer select-none bg-neutral-900/60"
-            >
-              {isNavDrawerOpen ? (
-                <>
-                  <X size={20} className="text-[#D7141A]" />
-                  <span>Close</span>
-                </>
-              ) : (
-                <>
-                  <Menu size={20} />
-                  <span>Navigate</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onNavigateAdmin}
+            aria-label={currentUser ? `Staff area, signed in as ${currentUser.name}` : 'Staff sign in'}
+            className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
+          >
+            <User size={18} />
+            <span>{currentUser ? currentUser.name.split(' ')[0] : 'Staff'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCartDrawerOpen(true)}
+            aria-label={`Open cart, ${cartItemCount} ${cartItemCount === 1 ? 'item' : 'items'}`}
+            className="icon-btn relative text-ink hover:bg-sand"
+          >
+            <ShoppingCart size={20} />
+            {cartItemCount > 0 && (
+              <span className="num absolute top-0 right-0 bg-brand-accent text-white text-[11px] font-bold min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsNavDrawerOpen(!isNavDrawerOpen)}
+            aria-expanded={isNavDrawerOpen}
+            aria-label={isNavDrawerOpen ? 'Close menu' : 'Open menu'}
+            className="btn btn-sm btn-outline min-w-[44px] px-3 sm:px-4"
+          >
+            {isNavDrawerOpen ? <X size={18} /> : <Menu size={18} />}
+            <span className="hidden min-[400px]:inline">{isNavDrawerOpen ? 'Close' : 'Menu'}</span>
+          </button>
         </div>
       </div>
     </header>

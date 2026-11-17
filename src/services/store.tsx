@@ -1,4 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  where,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  deleteField,
+  getDoc,
+  writeBatch
+} from 'firebase/firestore';
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signOut,
+  User
+} from 'firebase/auth';
 import {
   Product,
   SpecialCampaign,
@@ -7,10 +33,10 @@ import {
   DeliveryArea,
   SiteSettings,
   ActivityLog,
-  OrderItem,
   Role,
   OrderStatus,
-  PaymentStatus
+  PaymentStatus,
+  StaffInvite
 } from '../types';
 import {
   SEED_PRODUCTS,
@@ -20,13 +46,15 @@ import {
   SEED_DELIVERY_AREAS,
   SEED_SETTINGS
 } from '../data/seedData';
-import {
-  calculateDeliveryFee,
-  checkCartFreeDelivery,
-  calculateLineTotal,
-  applyBulkPriceUpdate
-} from '../utils/pricing';
+import { checkCartFreeDelivery, calculateLineTotal, applyBulkPriceUpdate } from '../utils/pricing';
 import { generateOrderNumber } from '../utils/delivery';
+import { db, auth } from './firebase';
+import { toast } from '../components/ui/feedback';
+
+/** Demo mode keeps everything in this browser with password-free role buttons. It is
+ *  only on when a build is made with VITE_DEMO_MODE=true. Otherwise the site uses the
+ *  live Firebase project. */
+export const DEMO_MODE: boolean = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export interface CartItem {
   product: Product;
@@ -35,21 +63,40 @@ export interface CartItem {
   notes?: string;
 }
 
+/** Where the signed-in person stands with the staff area. */
+export type AuthStatus = 'loading' | 'signed_out' | 'not_staff' | 'inactive' | 'staff';
+
+export interface SignedInAccount {
+  uid: string;
+  email: string | null;
+  emailVerified: boolean;
+  usesPassword: boolean;
+}
+
 interface StoreContextType {
-  // Store Data
   products: Product[];
   specials: SpecialCampaign[];
   orders: Order[];
   users: UserProfile[];
+  staffInvites: StaffInvite[];
   deliveryAreas: DeliveryArea[];
   settings: SiteSettings;
   activityLogs: ActivityLog[];
+  /** False until the live catalogue has loaded the first time. */
+  catalogueReady: boolean;
 
-  // Auth / Current User
+  // Who is signed in
   currentUser: UserProfile | null;
-  setCurrentUser: (user: UserProfile | null) => void;
+  account: SignedInAccount | null;
+  authStatus: AuthStatus;
   loginAsDemoRole: (role: Role) => void;
-  loginWithEmail: (email: string) => boolean;
+  loginWithEmail: (email: string) => 'ok' | 'inactive' | 'failed';
+  signInWithGoogle: () => Promise<string | null>;
+  signInWithPassword: (email: string, password: string) => Promise<string | null>;
+  createPasswordAccount: (email: string, password: string) => Promise<string | null>;
+  resetPassword: (email: string) => Promise<string | null>;
+  resendVerification: () => Promise<string | null>;
+  refreshAccount: () => Promise<void>;
   logout: () => void;
 
   // Cart
@@ -64,32 +111,26 @@ interface StoreContextType {
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
 
-  // Navigation Drawer
   isNavDrawerOpen: boolean;
   setIsNavDrawerOpen: (open: boolean) => void;
 
-  // Product CRUD & Actions
+  // Catalogue
   addProduct: (product: Omit<Product, 'id'>) => Product;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   duplicateProduct: (id: string) => Product | null;
-  deleteProduct: (id: string) => void; // soft or hard
+  deleteProduct: (id: string) => void;
   bulkUpdatePrices: (category: string, percentage: number) => void;
 
-  // Specials Actions
+  // Specials
   createSpecial: (special: Omit<SpecialCampaign, 'id'>) => SpecialCampaign;
   updateSpecial: (id: string, updates: Partial<SpecialCampaign>) => void;
   rerunSpecial: (id: string, newStartDate: string, newEndDate?: string) => void;
 
-  // Orders Actions
-  createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => Order;
+  // Orders
+  createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Order>;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   updatePaymentStatus: (id: string, status: PaymentStatus, method?: string) => void;
-  adjustOrderLineWeight: (
-    orderId: string,
-    productId: string,
-    actualWeightKg: number,
-    reason: string
-  ) => void;
+  adjustOrderLineWeight: (orderId: string, productId: string, actualWeightKg: number, reason: string) => void;
   assignDriver: (orderId: string, driverId: string) => void;
   recordDriverDelivery: (
     orderId: string,
@@ -98,14 +139,17 @@ interface StoreContextType {
     driverNotes?: string
   ) => void;
 
-  // Staff & Settings Actions
-  addStaff: (user: Omit<UserProfile, 'id' | 'createdAt'>) => UserProfile;
+  // Staff and settings
+  addStaff: (user: Omit<UserProfile, 'id' | 'createdAt'>) => void;
+  cancelInvite: (inviteId: string) => void;
   updateStaffRole: (userId: string, role: Role) => void;
   toggleStaffStatus: (userId: string) => void;
   updateSettings: (updates: Partial<SiteSettings>) => void;
   updateDeliveryArea: (id: string, updates: Partial<DeliveryArea>) => void;
 
-  // Reset demo data
+  /** Owner: write the starting products, specials, areas and settings to the database. */
+  loadStartingCatalogue: () => Promise<boolean>;
+  /** Demo only: put the browser's data back to the starting examples. */
   resetAllData: () => void;
 }
 
@@ -119,186 +163,447 @@ const STORAGE_KEYS = {
   AREAS: 'pm_areas_v1',
   SETTINGS: 'pm_settings_v1',
   LOGS: 'pm_logs_v1',
-  AUTH: 'pm_auth_user_v1',
+  AUTH: 'pm_auth_user_v2',
   CART: 'pm_cart_v1'
 };
 
+type CollectionName = 'products' | 'specials' | 'orders' | 'staff' | 'delivery_areas' | 'activity_logs';
+
+/** Reads saved JSON without crashing the site if it has been damaged or tampered with. */
+function loadSaved<T>(key: string, fallback: T): T {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return fallback;
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(fallback) !== Array.isArray(parsed) || parsed === null || typeof parsed !== 'object') {
+      return fallback;
+    }
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveLocal(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage full or blocked; the page keeps working for this visit.
+  }
+}
+
+/** Short, hard-to-guess order numbers such as PM-7K3QX9 (no 0/O or 1/I mix-ups). */
+function newOrderNumber(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return 'PM-' + Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
+}
+
+function friendlyAuthError(e: unknown): string {
+  const code = (e as { code?: string })?.code || '';
+  if (code.includes('popup-closed') || code.includes('cancelled-popup')) return 'Sign-in was closed before it finished.';
+  if (code.includes('popup-blocked')) return 'Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.';
+  if (code.includes('too-many-requests')) return 'Too many attempts. Wait a few minutes, then try again.';
+  if (code.includes('weak-password')) return 'Use a password of at least 8 characters.';
+  if (code.includes('email-already-in-use')) return 'An account with that email already exists. Sign in instead.';
+  if (code.includes('invalid-email')) return 'Check the email address.';
+  if (code.includes('unauthorized-domain')) return 'This website address is not yet allowed to sign in. The Owner needs to add it in Firebase.';
+  if (code.includes('network')) return 'No connection. Check your internet and try again.';
+  // Wrong password and unknown email get the same message, so accounts cannot be guessed.
+  return 'We could not sign you in with those details.';
+}
+
+function writeFailed(e: unknown) {
+  const code = (e as { code?: string })?.code || '';
+  console.error(e);
+  toast(
+    code === 'permission-denied'
+      ? 'That was not saved. Your account may not be allowed to do this, or you may need to sign in again.'
+      : 'That was not saved. Check your connection and try again.',
+    'error'
+  );
+}
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load initial states from localStorage with seed fallbacks
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    return saved ? JSON.parse(saved) : SEED_PRODUCTS;
-  });
+  // ---------- Data ----------
+  const [products, setProducts] = useState<Product[]>(() =>
+    DEMO_MODE ? loadSaved<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS) : []
+  );
+  const [specials, setSpecials] = useState<SpecialCampaign[]>(() =>
+    DEMO_MODE ? loadSaved<SpecialCampaign[]>(STORAGE_KEYS.SPECIALS, SEED_SPECIALS) : []
+  );
+  const [orders, setOrders] = useState<Order[]>(() =>
+    DEMO_MODE ? loadSaved<Order[]>(STORAGE_KEYS.ORDERS, SEED_ORDERS) : []
+  );
+  const [users, setUsers] = useState<UserProfile[]>(() =>
+    DEMO_MODE ? loadSaved<UserProfile[]>(STORAGE_KEYS.USERS, SEED_USERS) : []
+  );
+  const [liveAreas, setDeliveryAreas] = useState<DeliveryArea[]>(() =>
+    DEMO_MODE ? loadSaved<DeliveryArea[]>(STORAGE_KEYS.AREAS, SEED_DELIVERY_AREAS) : []
+  );
+  const [liveSettings, setSettings] = useState<SiteSettings | null>(() =>
+    DEMO_MODE ? loadSaved<SiteSettings>(STORAGE_KEYS.SETTINGS, SEED_SETTINGS) : null
+  );
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() =>
+    DEMO_MODE ? loadSaved<ActivityLog[]>(STORAGE_KEYS.LOGS, []) : []
+  );
+  const [staffInvites, setStaffInvites] = useState<StaffInvite[]>([]);
+  const [catalogueReady, setCatalogueReady] = useState(DEMO_MODE);
 
-  const [specials, setSpecials] = useState<SpecialCampaign[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SPECIALS);
-    return saved ? JSON.parse(saved) : SEED_SPECIALS;
-  });
+  // Until the Owner has saved settings and areas, the shop's published details are used.
+  const settings = liveSettings ?? SEED_SETTINGS;
+  const deliveryAreas = liveAreas.length > 0 ? liveAreas : SEED_DELIVERY_AREAS;
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    return saved ? JSON.parse(saved) : SEED_ORDERS;
-  });
-
-  const [users, setUsers] = useState<UserProfile[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.USERS);
-    return saved ? JSON.parse(saved) : SEED_USERS;
-  });
-
-  const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.AREAS);
-    return saved ? JSON.parse(saved) : SEED_DELIVERY_AREAS;
-  });
-
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return saved ? JSON.parse(saved) : SEED_SETTINGS;
-  });
-
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.LOGS);
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'log-seed-1',
-        userId: 'user-owner',
-        userName: 'Johan van der Merwe',
-        userRole: 'owner',
-        action: 'System Initialized',
-        details: 'Loaded Powermeat seed catalog and standard delivery zones',
-        timestamp: new Date().toISOString()
-      }
-    ];
-  });
-
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CART);
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [rawCart, setCart] = useState<CartItem[]>(() => loadSaved<CartItem[]>(STORAGE_KEYS.CART, []));
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
 
-  // Sync state changes to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  }, [products]);
+  // ---------- Who is signed in ----------
+  const [account, setAccount] = useState<SignedInAccount | null>(null);
+  const [authReady, setAuthReady] = useState(DEMO_MODE);
+  const [staffDoc, setStaffDoc] = useState<UserProfile | null | undefined>(undefined);
+  const claimTried = useRef<string | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SPECIALS, JSON.stringify(specials));
-  }, [specials]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.AREAS, JSON.stringify(deliveryAreas));
-  }, [deliveryAreas]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(activityLogs));
-  }, [activityLogs]);
-
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.AUTH);
+  // Demo: only the staff id is remembered, and the profile is looked up fresh, so a
+  // role cannot be granted by editing saved data.
+  const [demoUserId, setDemoUserId] = useState<string | null>(() => {
+    if (!DEMO_MODE) return null;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
+      return saved && saved.length <= 128 ? saved : null;
+    } catch {
+      return null;
     }
-  }, [currentUser]);
+  });
 
+  const currentUser: UserProfile | null = DEMO_MODE
+    ? users.find(u => u.id === demoUserId && u.active) || null
+    : staffDoc && staffDoc.active
+      ? staffDoc
+      : null;
+
+  const authStatus: AuthStatus = DEMO_MODE
+    ? currentUser
+      ? 'staff'
+      : 'signed_out'
+    : !authReady
+      ? 'loading'
+      : !account
+        ? 'signed_out'
+        : staffDoc === undefined
+          ? 'loading'
+          : staffDoc === null
+            ? 'not_staff'
+            : staffDoc.active
+              ? 'staff'
+              : 'inactive';
+
+  const role = currentUser?.role;
+  const isCounterUp = role === 'owner' || role === 'manager' || role === 'counter';
+
+  // ---------- Demo persistence ----------
+  useEffect(() => { if (DEMO_MODE) saveLocal(STORAGE_KEYS.PRODUCTS, products); }, [products]);
+  useEffect(() => { if (DEMO_MODE) saveLocal(STORAGE_KEYS.SPECIALS, specials); }, [specials]);
+  useEffect(() => { if (DEMO_MODE) saveLocal(STORAGE_KEYS.ORDERS, orders); }, [orders]);
+  useEffect(() => { if (DEMO_MODE) saveLocal(STORAGE_KEYS.USERS, users); }, [users]);
+  useEffect(() => { if (DEMO_MODE) saveLocal(STORAGE_KEYS.AREAS, liveAreas); }, [liveAreas]);
+  useEffect(() => { if (DEMO_MODE && liveSettings) saveLocal(STORAGE_KEYS.SETTINGS, liveSettings); }, [liveSettings]);
+  useEffect(() => { if (DEMO_MODE) saveLocal(STORAGE_KEYS.LOGS, activityLogs); }, [activityLogs]);
+  useEffect(() => { saveLocal(STORAGE_KEYS.CART, rawCart); }, [rawCart]);
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
-  }, [cart]);
+    if (!DEMO_MODE) return;
+    try {
+      if (demoUserId) localStorage.setItem(STORAGE_KEYS.AUTH, demoUserId);
+      else localStorage.removeItem(STORAGE_KEYS.AUTH);
+    } catch {
+      /* ignore */
+    }
+  }, [demoUserId]);
 
-  // Log activity helper
-  const logActivity = (action: string, details: string) => {
-    const newLog: ActivityLog = {
+  // ---------- Live data: the public catalogue ----------
+  useEffect(() => {
+    if (DEMO_MODE) return;
+    const fail = (e: Error) => console.error('Catalogue', e);
+    const unsubs = [
+      onSnapshot(collection(db, 'products'), snap => {
+        setProducts(snap.docs.map(d => ({ ...(d.data() as Product), id: d.id })).sort((a, b) => a.sortOrder - b.sortOrder));
+        setCatalogueReady(true);
+      }, e => { fail(e); setCatalogueReady(true); }),
+      onSnapshot(collection(db, 'specials'), snap => setSpecials(snap.docs.map(d => ({ ...(d.data() as SpecialCampaign), id: d.id }))), fail),
+      onSnapshot(collection(db, 'delivery_areas'), snap => setDeliveryAreas(snap.docs.map(d => ({ ...(d.data() as DeliveryArea), id: d.id }))), fail),
+      onSnapshot(doc(db, 'settings', 'site'), snap => setSettings(snap.exists() ? ({ ...SEED_SETTINGS, ...(snap.data() as SiteSettings) }) : null), fail)
+    ];
+    return () => unsubs.forEach(u => u());
+  }, []);
+
+  // ---------- Live data: sign-in ----------
+  useEffect(() => {
+    if (DEMO_MODE) return;
+    return onAuthStateChanged(auth, (user: User | null) => {
+      setAccount(
+        user
+          ? {
+              uid: user.uid,
+              email: user.email ? user.email.toLowerCase() : null,
+              emailVerified: user.emailVerified,
+              usesPassword: user.providerData.some(p => p.providerId === 'password')
+            }
+          : null
+      );
+      setAuthReady(true);
+    });
+  }, []);
+
+  // The staff record for the signed-in account. If there is none but the Owner has
+  // invited this email, the record is created from the invitation (the rules check it).
+  useEffect(() => {
+    if (DEMO_MODE) return;
+    if (!account) {
+      setStaffDoc(undefined);
+      return;
+    }
+    setStaffDoc(undefined);
+    const ref = doc(db, 'staff', account.uid);
+    return onSnapshot(
+      ref,
+      { includeMetadataChanges: true },
+      async snap => {
+        // Wait until the record is really saved: the rules read it on the server.
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          setStaffDoc({ ...(snap.data() as UserProfile), id: snap.id });
+          return;
+        }
+        if (account.email && account.emailVerified && claimTried.current !== account.uid) {
+          claimTried.current = account.uid;
+          try {
+            const inviteRef = doc(db, 'staff_invites', account.email);
+            const invite = await getDoc(inviteRef);
+            if (invite.exists()) {
+              const data = invite.data() as StaffInvite;
+              const batch = writeBatch(db);
+              batch.set(ref, {
+                id: account.uid,
+                name: data.name,
+                email: account.email,
+                phone: data.phone,
+                role: data.role,
+                active: true,
+                createdAt: new Date().toISOString()
+              });
+              batch.delete(inviteRef);
+              await batch.commit();
+              return; // the snapshot fires again with the new record
+            }
+          } catch (e) {
+            console.error('Invite', e);
+          }
+        }
+        setStaffDoc(null);
+      },
+      e => {
+        console.error('Staff record', e);
+        setStaffDoc(null);
+      }
+    );
+  }, [account?.uid, account?.emailVerified]);
+
+  // ---------- Live data: what this person may see ----------
+  useEffect(() => {
+    if (DEMO_MODE || !account) {
+      if (!DEMO_MODE) {
+        setOrders([]);
+        setUsers([]);
+        setActivityLogs([]);
+        setStaffInvites([]);
+      }
+      return;
+    }
+    const fail = (what: string) => (e: Error) => console.error(what, e);
+    const unsubs: Array<() => void> = [];
+    const asOrders = (docs: { id: string; data: () => unknown }[]) =>
+      docs.map(d => ({ ...(d.data() as Order), id: d.id })).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    if (currentUser && isCounterUp) {
+      unsubs.push(
+        onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(500)), s => setOrders(asOrders(s.docs)), fail('Orders')),
+        onSnapshot(query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'), limit(300)), s => setActivityLogs(s.docs.map(d => d.data() as ActivityLog)), fail('Activity')),
+        onSnapshot(collection(db, 'staff'), s => setUsers(s.docs.map(d => ({ ...(d.data() as UserProfile), id: d.id }))), fail('Staff'))
+      );
+      if (role === 'owner') {
+        unsubs.push(onSnapshot(collection(db, 'staff_invites'), s => setStaffInvites(s.docs.map(d => ({ ...(d.data() as StaffInvite), id: d.id }))), fail('Invites')));
+      }
+    } else if (currentUser && role === 'driver') {
+      unsubs.push(
+        onSnapshot(query(collection(db, 'orders'), where('assignedDriverId', '==', account.uid)), s => setOrders(asOrders(s.docs)), fail('Deliveries'))
+      );
+    } else if (authStatus !== 'loading' && account.email && account.emailVerified) {
+      // A customer sees the live status of orders placed with their own email.
+      unsubs.push(
+        onSnapshot(query(collection(db, 'orders'), where('customerEmail', '==', account.email)), s => setOrders(asOrders(s.docs)), fail('My orders'))
+      );
+    }
+    return () => unsubs.forEach(u => u());
+  }, [account?.uid, account?.email, account?.emailVerified, currentUser?.id, role, authStatus === 'loading']);
+
+  // ---------- Writing ----------
+  const setterFor: Record<CollectionName, React.Dispatch<React.SetStateAction<any[]>>> = {
+    products: setProducts as any,
+    specials: setSpecials as any,
+    orders: setOrders as any,
+    staff: setUsers as any,
+    delivery_areas: setDeliveryAreas as any,
+    activity_logs: setActivityLogs as any
+  };
+
+  /** Creates or replaces a whole record. */
+  const save = (name: CollectionName, record: { id: string }) => {
+    if (DEMO_MODE) {
+      setterFor[name](prev => {
+        const i = prev.findIndex((x: { id: string }) => x.id === record.id);
+        if (i === -1) return name === 'activity_logs' ? [record, ...prev] : [record, ...prev];
+        const next = [...prev];
+        next[i] = record;
+        return next;
+      });
+      return Promise.resolve(true);
+    }
+    return setDoc(doc(db, name, record.id), record).then(() => true, e => { writeFailed(e); return false; });
+  };
+
+  /** Changes some fields of a record. A field set to undefined is removed. */
+  const patch = (name: CollectionName, id: string, fields: Record<string, unknown>) => {
+    if (DEMO_MODE) {
+      setterFor[name](prev => prev.map((x: { id: string }) => (x.id === id ? { ...x, ...fields } : x)));
+      return Promise.resolve(true);
+    }
+    const data: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(fields)) data[k] = v === undefined ? deleteField() : v;
+    return updateDoc(doc(db, name, id), data).then(() => true, e => { writeFailed(e); return false; });
+  };
+
+  const remove = (name: CollectionName, id: string) => {
+    if (DEMO_MODE) {
+      setterFor[name](prev => prev.filter((x: { id: string }) => x.id !== id));
+      return Promise.resolve(true);
+    }
+    return deleteDoc(doc(db, name, id)).then(() => true, e => { writeFailed(e); return false; });
+  };
+
+  const logActivity = (action: string, details: string, actor: UserProfile | null = currentUser) => {
+    // Only staff keep the activity log; the rules require entries under their own name.
+    if (!actor) return;
+    const entry: ActivityLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      userId: currentUser?.id || 'system',
-      userName: currentUser?.name || 'Customer/Guest',
-      userRole: currentUser?.role || 'counter',
-      action,
-      details,
+      userId: actor.id,
+      userName: actor.name,
+      userRole: actor.role,
+      action: action.slice(0, 80),
+      details: details.slice(0, 1000),
       timestamp: new Date().toISOString()
     };
-    setActivityLogs(prev => [newLog, ...prev]);
+    if (DEMO_MODE) setActivityLogs(prev => [entry, ...prev]);
+    else setDoc(doc(db, 'activity_logs', entry.id), entry).catch(e => console.error('Activity log', e));
   };
 
-  // Auth functions
-  const loginAsDemoRole = (role: Role) => {
-    const found = users.find(u => u.role === role && u.active);
+  // ---------- Sign-in ----------
+  const loginAsDemoRole = (r: Role) => {
+    if (!DEMO_MODE) return;
+    const found = users.find(u => u.role === r && u.active);
     if (found) {
-      setCurrentUser(found);
-      logActivity('Staff Login', `${found.name} logged in as ${role.toUpperCase()}`);
+      setDemoUserId(found.id);
+      logActivity('Staff Login', `${found.name} logged in as ${r.toUpperCase()}`, found);
     }
   };
 
-  const loginWithEmail = (email: string): boolean => {
-    const clean = email.toLowerCase().trim();
-    const found = users.find(u => u.email.toLowerCase() === clean);
-    if (found) {
-      if (!found.active) {
-        alert('This staff account has been deactivated. Please contact the Owner.');
-        return false;
-      }
-      setCurrentUser(found);
-      logActivity('Staff Login', `${found.name} logged in with ${email}`);
-      return true;
+  const loginWithEmail = (email: string): 'ok' | 'inactive' | 'failed' => {
+    if (!DEMO_MODE) return 'failed';
+    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+    if (!found) return 'failed';
+    if (!found.active) return 'inactive';
+    setDemoUserId(found.id);
+    logActivity('Staff Login', `${found.name} logged in with ${found.email}`, found);
+    return 'ok';
+  };
+
+  const attempt = async (fn: () => Promise<unknown>): Promise<string | null> => {
+    try {
+      await fn();
+      return null;
+    } catch (e) {
+      return friendlyAuthError(e);
     }
-    return false;
+  };
+
+  const signInWithGoogle = () =>
+    attempt(() => signInWithPopup(auth, new GoogleAuthProvider().setCustomParameters({ prompt: 'select_account' })));
+  const signInWithPassword = (email: string, password: string) =>
+    attempt(() => signInWithEmailAndPassword(auth, email.trim(), password));
+  const createPasswordAccount = (email: string, password: string) =>
+    attempt(async () => {
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      await sendEmailVerification(cred.user);
+    });
+  // Always reports success, so the form cannot be used to find out which emails have accounts.
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+    } catch (e) {
+      const code = (e as { code?: string })?.code || '';
+      if (code.includes('invalid-email') || code.includes('too-many')) return friendlyAuthError(e);
+    }
+    return null;
+  };
+  const resendVerification = () =>
+    attempt(async () => {
+      if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+    });
+  const refreshAccount = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    await user.reload();
+    await user.getIdToken(true);
+    claimTried.current = null;
+    setAccount({
+      uid: user.uid,
+      email: user.email ? user.email.toLowerCase() : null,
+      emailVerified: user.emailVerified,
+      usesPassword: user.providerData.some(p => p.providerId === 'password')
+    });
   };
 
   const logout = () => {
-    if (currentUser) {
-      logActivity('Staff Logout', `${currentUser.name} signed out`);
-    }
-    setCurrentUser(null);
+    if (currentUser) logActivity('Staff Logout', `${currentUser.name} signed out`);
+    if (DEMO_MODE) setDemoUserId(null);
+    else signOut(auth);
   };
 
-  // Cart functions
+  // ---------- Cart (always priced from the live catalogue) ----------
+  const cart = useMemo(
+    () => rawCart.map(item => ({ ...item, product: products.find(p => p.id === item.product.id) ?? item.product })),
+    [rawCart, products]
+  );
+
   const addToCart = (product: Product, quantity = 1, selectedOption?: string, notes?: string) => {
     setCart(prev => {
-      const existingIndex = prev.findIndex(
-        item => item.product.id === product.id && item.selectedOption === selectedOption
-      );
-
-      if (existingIndex > -1) {
+      const i = prev.findIndex(item => item.product.id === product.id && item.selectedOption === selectedOption);
+      if (i > -1) {
         const updated = [...prev];
-        const newQty = (product.pricingType === 'per_kg')
-          ? Math.round((updated[existingIndex].quantity + quantity) * 10) / 10
-          : updated[existingIndex].quantity + quantity;
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: newQty,
-          notes: notes || updated[existingIndex].notes
-        };
+        const newQty =
+          product.pricingType === 'per_kg'
+            ? Math.round((updated[i].quantity + quantity) * 10) / 10
+            : updated[i].quantity + quantity;
+        updated[i] = { ...updated[i], quantity: newQty, notes: notes || updated[i].notes };
         return updated;
-      } else {
-        return [...prev, { product, quantity, selectedOption, notes }];
       }
+      return [...prev, { product, quantity, selectedOption, notes }];
     });
     setIsCartDrawerOpen(true);
   };
 
-  const removeFromCart = (productId: string, selectedOption?: string) => {
-    setCart(prev =>
-      prev.filter(item => !(item.product.id === productId && item.selectedOption === selectedOption))
-    );
-  };
+  const removeFromCart = (productId: string, selectedOption?: string) =>
+    setCart(prev => prev.filter(item => !(item.product.id === productId && item.selectedOption === selectedOption)));
 
   const updateCartQuantity = (productId: string, quantity: number, selectedOption?: string) => {
     if (quantity <= 0) {
@@ -306,12 +611,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
     setCart(prev =>
-      prev.map(item => {
-        if (item.product.id === productId && item.selectedOption === selectedOption) {
-          return { ...item, quantity };
-        }
-        return item;
-      })
+      prev.map(item =>
+        item.product.id === productId && item.selectedOption === selectedOption ? { ...item, quantity } : item
+      )
     );
   };
 
@@ -328,30 +630,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     cart.map(c => ({ category: c.product.category, isFreeDelivery: c.product.isFreeDelivery }))
   );
 
-  // Product CRUD
+  // ---------- Catalogue ----------
   const addProduct = (prodData: Omit<Product, 'id'>): Product => {
-    const newProduct: Product = {
-      ...prodData,
-      id: `prod-${Date.now()}`
-    };
-    setProducts(prev => [newProduct, ...prev]);
+    const newProduct: Product = { ...prodData, id: `prod-${Date.now()}` };
+    save('products', newProduct);
     logActivity('Product Created', `Added "${newProduct.name}" (${newProduct.sku}) at R${newProduct.price}`);
     return newProduct;
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          const updated = { ...p, ...updates };
-          logActivity(
-            'Product Updated',
-            `Updated "${updated.name}" (${p.price !== updated.price ? `Price: R${p.price} -> R${updated.price}` : 'details'})`
-          );
-          return updated;
-        }
-        return p;
-      })
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const changes: Record<string, unknown> = { ...updates };
+    delete changes.id;
+    patch('products', id, changes);
+    const newPrice = updates.price ?? p.price;
+    logActivity(
+      'Product Updated',
+      `Updated "${updates.name ?? p.name}" (${p.price !== newPrice ? `Price: R${p.price} -> R${newPrice}` : 'details'})`
     );
   };
 
@@ -367,189 +663,115 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       stockStatus: 'hidden',
       sortOrder: target.sortOrder + 1
     };
-    setProducts(prev => [duplicated, ...prev]);
+    save('products', duplicated);
     logActivity('Product Duplicated', `Duplicated "${target.name}" to create "${duplicated.name}"`);
     return duplicated;
   };
 
   const deleteProduct = (id: string) => {
     const target = products.find(p => p.id === id);
-    if (target) {
-      setProducts(prev => prev.filter(p => p.id !== id));
-      logActivity('Product Deleted', `Removed "${target.name}" (${target.sku})`);
-    }
+    if (!target) return;
+    remove('products', id);
+    logActivity('Product Deleted', `Removed "${target.name}" (${target.sku})`);
   };
 
   const bulkUpdatePrices = (category: string, percentage: number) => {
-    setProducts(prev =>
-      prev.map(p => {
-        if (category === 'All' || p.category === category || p.subCategory === category) {
-          const updatedPrice = applyBulkPriceUpdate(p.price, percentage);
-          return { ...p, price: updatedPrice };
-        }
-        return p;
-      })
-    );
-    logActivity(
-      'Bulk Price Update',
-      `Adjusted all prices in "${category}" by ${percentage > 0 ? '+' : ''}${percentage}%`
-    );
+    const affected = products.filter(p => category === 'All' || p.category === category || p.subCategory === category);
+    if (DEMO_MODE) {
+      setProducts(prev =>
+        prev.map(p => (affected.some(a => a.id === p.id) ? { ...p, price: applyBulkPriceUpdate(p.price, percentage) } : p))
+      );
+    } else {
+      const batch = writeBatch(db);
+      affected.forEach(p => batch.update(doc(db, 'products', p.id), { price: applyBulkPriceUpdate(p.price, percentage) }));
+      batch.commit().catch(writeFailed);
+    }
+    logActivity('Bulk Price Update', `Adjusted all prices in "${category}" by ${percentage > 0 ? '+' : ''}${percentage}%`);
   };
 
-  // Specials
+  // ---------- Specials ----------
   const createSpecial = (data: Omit<SpecialCampaign, 'id'>): SpecialCampaign => {
-    const newSpecial: SpecialCampaign = {
-      ...data,
-      id: `special-${Date.now()}`
-    };
-    setSpecials(prev => [newSpecial, ...prev]);
+    const newSpecial: SpecialCampaign = { ...data, id: `special-${Date.now()}` };
+    save('specials', newSpecial);
     logActivity('Special Created', `Launched special campaign "${newSpecial.title}" (${newSpecial.label})`);
     return newSpecial;
   };
 
   const updateSpecial = (id: string, updates: Partial<SpecialCampaign>) => {
-    setSpecials(prev =>
-      prev.map(s => {
-        if (s.id === id) {
-          const updated = { ...s, ...updates };
-          logActivity('Special Updated', `Modified special "${updated.title}"`);
-          return updated;
-        }
-        return s;
-      })
-    );
+    const s = specials.find(x => x.id === id);
+    if (!s) return;
+    const changes: Record<string, unknown> = { ...updates };
+    delete changes.id;
+    patch('specials', id, changes);
+    logActivity('Special Updated', `Modified special "${updates.title ?? s.title}"`);
   };
 
   const rerunSpecial = (id: string, newStartDate: string, newEndDate?: string) => {
-    setSpecials(prev =>
-      prev.map(s => {
-        if (s.id === id) {
-          const updated = {
-            ...s,
-            startDate: newStartDate,
-            endDate: newEndDate,
-            active: true
-          };
-          logActivity('Special Re-Run', `Re-activated archived special "${s.title}" with new dates`);
-          return updated;
-        }
-        return s;
-      })
-    );
+    const s = specials.find(x => x.id === id);
+    if (!s) return;
+    patch('specials', id, { startDate: newStartDate, endDate: newEndDate, active: true });
+    logActivity('Special Re-Run', `Re-activated archived special "${s.title}" with new dates`);
   };
 
-  // Orders
-  const createOrder = (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Order => {
-    const nextSeq = orders.length + 105;
-    const orderId = generateOrderNumber(nextSeq);
+  // ---------- Orders ----------
+  const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> => {
     const now = new Date().toISOString();
-
-    const newOrder: Order = {
-      ...orderData,
-      id: orderId,
-      createdAt: now,
-      updatedAt: now
-    };
-
-    setOrders(prev => [newOrder, ...prev]);
-    logActivity(
-      'Order Placed',
-      `New order ${orderId} by ${newOrder.customerName} (${newOrder.deliveryType}) - Total: R${newOrder.total}`
-    );
+    const id = DEMO_MODE ? generateOrderNumber(orders.length + 105) : newOrderNumber();
+    const newOrder: Order = { ...orderData, id, createdAt: now, updatedAt: now };
+    if (DEMO_MODE) {
+      setOrders(prev => [newOrder, ...prev]);
+    } else {
+      // Placed without waiting for staff: the rules check every field of a new order.
+      await setDoc(doc(db, 'orders', id), newOrder);
+    }
+    logActivity('Order Placed', `New order ${id} by ${newOrder.customerName} (${newOrder.deliveryType}) - Total: R${newOrder.total}`);
     return newOrder;
   };
 
   const updateOrderStatus = (id: string, status: OrderStatus) => {
-    setOrders(prev =>
-      prev.map(o => {
-        if (o.id === id) {
-          const updated = { ...o, orderStatus: status, updatedAt: new Date().toISOString() };
-          logActivity('Order Status Changed', `Order ${id} moved from ${o.orderStatus} -> ${status}`);
-          return updated;
-        }
-        return o;
-      })
-    );
+    const o = orders.find(x => x.id === id);
+    if (!o) return;
+    patch('orders', id, { orderStatus: status, updatedAt: new Date().toISOString() });
+    logActivity('Order Status Changed', `Order ${id} moved from ${o.orderStatus} -> ${status}`);
   };
 
   const updatePaymentStatus = (id: string, status: PaymentStatus, method?: string) => {
-    setOrders(prev =>
-      prev.map(o => {
-        if (o.id === id) {
-          const updated = {
-            ...o,
-            paymentStatus: status,
-            paymentMethod: method ? (method as any) : o.paymentMethod,
-            updatedAt: new Date().toISOString()
-          };
-          logActivity('Payment Updated', `Order ${id} marked ${status.toUpperCase()} via ${updated.paymentMethod}`);
-          return updated;
-        }
-        return o;
-      })
-    );
+    const o = orders.find(x => x.id === id);
+    if (!o) return;
+    const paymentMethod = (method as Order['paymentMethod']) || o.paymentMethod;
+    patch('orders', id, { paymentStatus: status, paymentMethod, updatedAt: new Date().toISOString() });
+    logActivity('Payment Updated', `Order ${id} marked ${status.toUpperCase()} via ${paymentMethod}`);
   };
 
-  const adjustOrderLineWeight = (
-    orderId: string,
-    productId: string,
-    actualWeightKg: number,
-    reason: string
-  ) => {
-    setOrders(prev =>
-      prev.map(o => {
-        if (o.id === orderId) {
-          const updatedItems = o.items.map(item => {
-            if (item.productId === productId) {
-              const adjustedPrice = Math.round((item.unitPrice * actualWeightKg + 0.0001) * 100) / 100;
-              return {
-                ...item,
-                actualWeightKg,
-                adjustedPrice,
-                lineTotal: adjustedPrice
-              };
-            }
-            return item;
-          });
-
-          const newSubtotal = updatedItems.reduce((acc, it) => acc + it.lineTotal, 0);
-          const newTotal = newSubtotal + o.deliveryFee;
-
-          logActivity(
-            'Weigh & Adjust',
-            `Order ${orderId}: Weighed product ${productId} at ${actualWeightKg}kg. Reason: ${reason}`
-          );
-
-          return {
-            ...o,
-            items: updatedItems,
-            subtotal: newSubtotal,
-            total: newTotal,
-            weighAdjustReason: reason,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return o;
-      })
-    );
+  const adjustOrderLineWeight = (orderId: string, productId: string, actualWeightKg: number, reason: string) => {
+    const o = orders.find(x => x.id === orderId);
+    if (!o) return;
+    const items = o.items.map(item => {
+      if (item.productId !== productId) return item;
+      const adjustedPrice = Math.round((item.unitPrice * actualWeightKg + 0.0001) * 100) / 100;
+      return { ...item, actualWeightKg, adjustedPrice, lineTotal: adjustedPrice };
+    });
+    const subtotal = Math.round((items.reduce((acc, it) => acc + it.lineTotal, 0) + 0.0001) * 100) / 100;
+    patch('orders', orderId, {
+      items,
+      subtotal,
+      total: Math.round((subtotal + o.deliveryFee + 0.0001) * 100) / 100,
+      weighAdjustReason: reason.slice(0, 300),
+      updatedAt: new Date().toISOString()
+    });
+    logActivity('Weigh & Adjust', `Order ${orderId}: Weighed product ${productId} at ${actualWeightKg}kg. Reason: ${reason}`);
   };
 
   const assignDriver = (orderId: string, driverId: string) => {
+    const o = orders.find(x => x.id === orderId);
+    if (!o) return;
     const driver = users.find(u => u.id === driverId);
-    setOrders(prev =>
-      prev.map(o => {
-        if (o.id === orderId) {
-          logActivity('Driver Assigned', `Assigned order ${orderId} to driver ${driver ? driver.name : driverId}`);
-          return {
-            ...o,
-            assignedDriverId: driverId,
-            orderStatus: o.orderStatus === 'packing' || o.orderStatus === 'confirmed' ? 'out_for_delivery' : o.orderStatus,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return o;
-      })
-    );
+    patch('orders', orderId, {
+      assignedDriverId: driverId,
+      orderStatus: o.orderStatus === 'packing' || o.orderStatus === 'confirmed' ? 'out_for_delivery' : o.orderStatus,
+      updatedAt: new Date().toISOString()
+    });
+    logActivity('Driver Assigned', `Assigned order ${orderId} to driver ${driver ? driver.name : driverId}`);
   };
 
   const recordDriverDelivery = (
@@ -558,98 +780,118 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     cashCollected?: number,
     driverNotes?: string
   ) => {
-    setOrders(prev =>
-      prev.map(o => {
-        if (o.id === orderId) {
-          logActivity(
-            'Delivery Result',
-            `Driver updated ${orderId}: ${status}. Cash collected: R${cashCollected || 0}. Notes: ${driverNotes || 'None'}`
-          );
-          return {
-            ...o,
-            orderStatus: status,
-            cashCollected: cashCollected !== undefined ? cashCollected : o.cashCollected,
-            driverNotes: driverNotes || o.driverNotes,
-            paymentStatus: cashCollected && cashCollected >= o.total ? 'paid' : o.paymentStatus,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return o;
-      })
+    const o = orders.find(x => x.id === orderId);
+    if (!o) return;
+    const fields: Record<string, unknown> = {
+      orderStatus: status,
+      paymentStatus: cashCollected && cashCollected >= o.total ? 'paid' : o.paymentStatus,
+      updatedAt: new Date().toISOString()
+    };
+    if (cashCollected !== undefined) fields.cashCollected = cashCollected;
+    if (driverNotes) fields.driverNotes = driverNotes.slice(0, 500);
+    patch('orders', orderId, fields);
+    logActivity(
+      'Delivery Result',
+      `Driver updated ${orderId}: ${status}. Cash collected: R${cashCollected || 0}. Notes: ${driverNotes || 'None'}`
     );
   };
 
-  // Staff management
-  const addStaff = (userData: Omit<UserProfile, 'id' | 'createdAt'>): UserProfile => {
-    const newUser: UserProfile = {
-      ...userData,
-      id: `user-${Date.now()}`,
+  // ---------- Staff ----------
+  const addStaff = (userData: Omit<UserProfile, 'id' | 'createdAt'>) => {
+    const email = userData.email.trim().toLowerCase();
+    if (DEMO_MODE) {
+      const newUser: UserProfile = { ...userData, email, id: `user-${Date.now()}`, createdAt: new Date().toISOString() };
+      save('staff', newUser);
+      logActivity('Staff Account Added', `Added ${newUser.name} as ${newUser.role.toUpperCase()}`);
+      return;
+    }
+    if (!currentUser) return;
+    const invite: StaffInvite = {
+      id: email,
+      email,
+      name: userData.name,
+      phone: userData.phone,
+      role: userData.role,
+      invitedBy: currentUser.id,
       createdAt: new Date().toISOString()
     };
-    setUsers(prev => [...prev, newUser]);
-    logActivity('Staff Account Added', `Invited ${newUser.name} as ${newUser.role.toUpperCase()}`);
-    return newUser;
+    setDoc(doc(db, 'staff_invites', email), invite).then(
+      () => toast(`Invitation saved. ${userData.name} can now sign in with ${email}.`),
+      writeFailed
+    );
+    logActivity('Staff Invited', `Invited ${userData.name} (${email}) as ${userData.role.toUpperCase()}`);
   };
 
-  const updateStaffRole = (userId: string, role: Role) => {
-    setUsers(prev =>
-      prev.map(u => {
-        if (u.id === userId) {
-          logActivity('Staff Role Changed', `Changed ${u.name}'s role to ${role.toUpperCase()}`);
-          return { ...u, role };
-        }
-        return u;
-      })
-    );
+  const cancelInvite = (inviteId: string) => {
+    if (DEMO_MODE) return;
+    deleteDoc(doc(db, 'staff_invites', inviteId)).catch(writeFailed);
+    logActivity('Staff Invite Cancelled', `Cancelled the invitation for ${inviteId}`);
+  };
+
+  const updateStaffRole = (userId: string, newRole: Role) => {
+    const u = users.find(x => x.id === userId);
+    if (!u) return;
+    patch('staff', userId, { role: newRole });
+    logActivity('Staff Role Changed', `Changed ${u.name}'s role to ${newRole.toUpperCase()}`);
   };
 
   const toggleStaffStatus = (userId: string) => {
-    setUsers(prev =>
-      prev.map(u => {
-        if (u.id === userId) {
-          const nextActive = !u.active;
-          logActivity(
-            nextActive ? 'Staff Activated' : 'Staff Deactivated',
-            `${nextActive ? 'Re-activated' : 'Deactivated'} ${u.name}'s account (Account preserved)`
-          );
-          return { ...u, active: nextActive };
-        }
-        return u;
-      })
+    const u = users.find(x => x.id === userId);
+    if (!u) return;
+    patch('staff', userId, { active: !u.active });
+    logActivity(
+      !u.active ? 'Staff Activated' : 'Staff Deactivated',
+      `${!u.active ? 'Re-activated' : 'Deactivated'} ${u.name}'s account (Account preserved)`
     );
   };
 
   const updateSettings = (updates: Partial<SiteSettings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...updates };
-      logActivity('Settings Updated', 'Updated butchery store settings');
-      return updated;
-    });
+    const next = { ...settings, ...updates };
+    if (DEMO_MODE) setSettings(next);
+    else setDoc(doc(db, 'settings', 'site'), next).catch(writeFailed);
+    logActivity('Settings Updated', 'Updated butchery store settings');
   };
 
   const updateDeliveryArea = (id: string, updates: Partial<DeliveryArea>) => {
-    setDeliveryAreas(prev =>
-      prev.map(a => {
-        if (a.id === id) {
-          const updated = { ...a, ...updates };
-          logActivity('Delivery Area Updated', `Updated rules for area "${updated.name}"`);
-          return updated;
-        }
-        return a;
-      })
-    );
+    const a = deliveryAreas.find(x => x.id === id);
+    if (!a) return;
+    // Saved whole, so an area that only existed in the starting details is created.
+    save('delivery_areas', { ...a, ...updates, id });
+    logActivity('Delivery Area Updated', `Updated rules for area "${updates.name ?? a.name}"`);
+  };
+
+  const loadStartingCatalogue = async () => {
+    if (DEMO_MODE || role !== 'owner') return false;
+    try {
+      const batch = writeBatch(db);
+      SEED_PRODUCTS.forEach(p => batch.set(doc(db, 'products', p.id), p));
+      SEED_SPECIALS.forEach(s => batch.set(doc(db, 'specials', s.id), s));
+      SEED_DELIVERY_AREAS.forEach(a => batch.set(doc(db, 'delivery_areas', a.id), a));
+      batch.set(doc(db, 'settings', 'site'), liveSettings ?? SEED_SETTINGS);
+      await batch.commit();
+      logActivity('Catalogue Loaded', `Loaded ${SEED_PRODUCTS.length} starting products, specials and delivery areas`);
+      return true;
+    } catch (e) {
+      writeFailed(e);
+      return false;
+    }
   };
 
   const resetAllData = () => {
-    localStorage.clear();
+    if (!DEMO_MODE) return;
+    try {
+      Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
+    }
     setProducts(SEED_PRODUCTS);
     setSpecials(SEED_SPECIALS);
     setOrders(SEED_ORDERS);
     setUsers(SEED_USERS);
     setDeliveryAreas(SEED_DELIVERY_AREAS);
     setSettings(SEED_SETTINGS);
+    setActivityLogs([]);
     setCart([]);
-    logActivity('System Reset', 'Reset all test data back to factory seed defaults');
   };
 
   return (
@@ -659,13 +901,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         specials,
         orders,
         users,
+        staffInvites,
         deliveryAreas,
         settings,
         activityLogs,
+        catalogueReady,
         currentUser,
-        setCurrentUser,
+        account,
+        authStatus,
         loginAsDemoRole,
         loginWithEmail,
+        signInWithGoogle,
+        signInWithPassword,
+        createPasswordAccount,
+        resetPassword,
+        resendVerification,
+        refreshAccount,
         logout,
         cart,
         addToCart,
@@ -694,10 +945,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         assignDriver,
         recordDriverDelivery,
         addStaff,
+        cancelInvite,
         updateStaffRole,
         toggleStaffStatus,
         updateSettings,
         updateDeliveryArea,
+        loadStartingCatalogue,
         resetAllData
       }}
     >
