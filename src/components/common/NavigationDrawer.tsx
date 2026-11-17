@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Home, Truck, Building2, PhoneCall, ClipboardList, User, X } from 'lucide-react';
-import { useStore } from '../../services/store';
+import { useStore, DEMO_MODE } from '../../services/store';
 import { telLink } from '../../utils/contact';
 
 interface NavigationDrawerProps {
@@ -24,7 +24,9 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onSelectCategory,
   onNavigatePage
 }) => {
-  const { settings } = useStore();
+  const { settings, currentUser, account } = useStore();
+  const accountTarget = currentUser || DEMO_MODE ? 'admin' : account ? 'my-orders' : 'signin';
+  const accountLabel = currentUser ? 'Business area' : account ? 'My account' : 'Sign in';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -86,9 +88,9 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 <PhoneCall size={20} className="text-brand-accent-deep" />
                 Contact and location
               </button>
-              <button type="button" onClick={() => goPage('admin')} className={rowClass}>
+              <button type="button" onClick={() => goPage(accountTarget)} className={rowClass}>
                 <User size={20} className="text-brand-accent-deep" />
-                Staff sign in
+                {accountLabel}
               </button>
             </div>
 

@@ -6,8 +6,13 @@ import { toast } from '../ui/feedback';
 
 type Mode = 'sign_in' | 'create' | 'reset';
 
-/** Staff sign-in for the live site (Firebase Authentication). */
-export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNavigateHome }) => {
+/** One sign-in for everyone (Firebase Authentication). What a person can open
+ *  afterwards depends only on the role on their account, never on how they signed in. */
+export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () => void; embedded?: boolean }> = ({
+  onNavigateHome,
+  onOpenAccount,
+  embedded = false
+}) => {
   const {
     authStatus,
     account,
@@ -40,7 +45,7 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'reset') {
-      run('reset', () => resetPassword(email), 'If that email has a staff account, a reset link is on its way. Check your inbox.');
+      run('reset', () => resetPassword(email), 'If that email has an account, a reset link is on its way. Check your inbox.');
     } else if (mode === 'create') {
       if (password.length < 8) {
         setError('Use a password of at least 8 characters.');
@@ -62,12 +67,21 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
     }
   };
 
+  // Inside the shop the page header already carries the logo; on its own it shows it.
   const shell = (children: React.ReactNode) => (
-    <div className="min-h-screen bg-paper text-ink flex flex-col justify-center items-center p-4">
+    <div
+      className={
+        embedded
+          ? 'flex justify-center px-4 py-12 md:py-16'
+          : 'min-h-screen bg-paper text-ink flex flex-col justify-center items-center p-4'
+      }
+    >
       <div className="panel w-full max-w-md p-6 sm:p-8">
-        <button type="button" onClick={onNavigateHome} aria-label="Powermeat home" className="rounded-xl min-h-[44px] flex items-center">
-          <Logo size="lg" />
-        </button>
+        {!embedded && (
+          <button type="button" onClick={onNavigateHome} aria-label="Powermeat home" className="rounded-xl min-h-[44px] flex items-center mb-6">
+            <Logo size="lg" />
+          </button>
+        )}
         {children}
         <button type="button" onClick={onNavigateHome} className="link mt-6 text-sm">
           Back to the store
@@ -78,7 +92,7 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
   if (authStatus === 'loading') {
     return shell(
-      <p className="mt-8 flex items-center gap-3 text-ink-soft" role="status">
+      <p className="flex items-center gap-3 text-ink-soft" role="status">
         <Loader2 size={20} className="animate-spin" />
         Checking your sign-in
       </p>
@@ -88,9 +102,9 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
   if (authStatus === 'inactive') {
     return shell(
       <>
-        <h1 className="display text-4xl mt-6">This account is switched off</h1>
+        <h1 className="display text-4xl">This account is switched off</h1>
         <p className="mt-3 text-ink-soft">
-          {account?.email} is no longer active on the staff list. Please speak to the Owner.
+          {account?.email} no longer has access to the business area. Please speak to the Owner.
         </p>
         <button type="button" onClick={logout} className="btn btn-outline mt-6">
           Sign out
@@ -103,7 +117,7 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
     if (account.usesPassword && !account.emailVerified) {
       return shell(
         <>
-          <h1 className="display text-4xl mt-6">
+          <h1 className="display text-4xl">
             Check your <span className="text-brand-accent">email</span>
           </h1>
           <p className="mt-3 text-ink-soft">
@@ -118,8 +132,8 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
             <button type="button" onClick={() => run('resend', resendVerification, 'A new link is on its way.')} className="btn btn-outline">
               Send the link again
             </button>
-            <button type="button" onClick={logout} className="btn btn-outline">
-              Sign out
+            <button type="button" onClick={onNavigateHome} className="btn btn-outline">
+              Continue to the shop
             </button>
           </div>
           {notice && <p className="field-help" role="status">{notice}</p>}
@@ -130,13 +144,21 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
     return shell(
       <>
-        <h1 className="display text-4xl mt-6">You are not on the staff list yet</h1>
+        <h1 className="display text-4xl">No access to the business area</h1>
         <p className="mt-3 text-ink-soft">
-          Ask the Owner to invite <strong className="text-ink">{account.email}</strong> in Staff, then sign in again.
+          You are signed in as <strong className="text-ink">{account.email}</strong>. This account has no role in the
+          business area. If you work at Powermeat, ask the Owner to give you a role, then sign in again.
         </p>
-        <button type="button" onClick={logout} className="btn btn-outline mt-6">
-          Sign out
-        </button>
+        <div className="mt-6 flex flex-col sm:flex-row gap-2.5">
+          {onOpenAccount && (
+            <button type="button" onClick={onOpenAccount} className="btn btn-primary">
+              Go to my account
+            </button>
+          )}
+          <button type="button" onClick={logout} className="btn btn-outline">
+            Sign out
+          </button>
+        </div>
 
         <details className="mt-8 rounded-2xl bg-sand p-4">
           <summary className="font-semibold min-h-[44px] flex items-center">Setting up as the Owner for the first time?</summary>
@@ -165,8 +187,8 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
   return shell(
     <>
-      <h1 className="display text-4xl mt-6">
-        Staff sign <span className="text-brand-accent">in</span>
+      <h1 className="display text-4xl">
+        Sign <span className="text-brand-accent">in</span>
       </h1>
 
       <button
@@ -182,11 +204,11 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
       <p className="my-6 text-center text-sm text-ink-soft">or use your email</p>
 
       <form onSubmit={submit} noValidate>
-        <label htmlFor="staff-email" className="field-label">
+        <label htmlFor="signin-email" className="field-label">
           Email
         </label>
         <input
-          id="staff-email"
+          id="signin-email"
           type="email"
           autoComplete="username"
           maxLength={254}
@@ -198,11 +220,11 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
         {mode !== 'reset' && (
           <>
-            <label htmlFor="staff-password" className="field-label mt-4">
+            <label htmlFor="signin-password" className="field-label mt-4">
               {mode === 'create' ? 'Choose a password' : 'Password'}
             </label>
             <input
-              id="staff-password"
+              id="signin-password"
               type="password"
               autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
               minLength={mode === 'create' ? 8 : undefined}
@@ -229,7 +251,7 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
         <button type="submit" disabled={!!busy} className="btn btn-accent btn-block mt-5">
           {busy && busy !== 'google' ? <Loader2 size={18} className="animate-spin" /> : null}
-          <span>{mode === 'create' ? 'Create my staff password' : mode === 'reset' ? 'Send a reset link' : 'Sign in'}</span>
+          <span>{mode === 'create' ? 'Create my account' : mode === 'reset' ? 'Send a reset link' : 'Sign in'}</span>
         </button>
       </form>
 
@@ -246,7 +268,7 @@ export const StaffSignIn: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
         )}
         {mode !== 'create' && (
           <button type="button" onClick={() => { setMode('create'); setError(null); setNotice(null); }} className="link text-sm text-left">
-            Invited, without a Google account? Create a password
+            New here? Create an account
           </button>
         )}
       </div>

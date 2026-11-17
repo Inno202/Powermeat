@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { RotateCcw, MessageCircle, LogIn } from 'lucide-react';
 import { useStore, DEMO_MODE } from '../../services/store';
 import { Order } from '../../types';
@@ -11,30 +11,23 @@ import { OrderSummary } from './OrderSummary';
 interface MyOrdersViewProps {
   onReorder: (order: Order) => void;
   onNavigateHome: () => void;
+  onNavigateSignIn: () => void;
+  onNavigateAdmin: () => void;
 }
 
-export const MyOrdersView: React.FC<MyOrdersViewProps> = ({ onReorder, onNavigateHome }) => {
-  const { orders, settings, account, currentUser, signInWithGoogle, logout } = useStore();
-  const [signingIn, setSigningIn] = useState(false);
-  const [signInError, setSignInError] = useState<string | null>(null);
+export const MyOrdersView: React.FC<MyOrdersViewProps> = ({ onReorder, onNavigateHome, onNavigateSignIn, onNavigateAdmin }) => {
+  const { orders, settings, account, currentUser, logout } = useStore();
 
   // Orders from this device, with the live version (status, weighed totals) when it
   // can be read: for a signed-in customer, the orders placed with their own email.
   const visible = useMemo(() => {
     const live = new Map(orders.map(o => [o.id, o]));
     const mine = getMyOrders().map(o => ({ order: live.get(o.id) ?? o, isLive: live.has(o.id) }));
-    const signedInCustomer = !DEMO_MODE && account && !currentUser;
-    if (signedInCustomer) {
+    if (!DEMO_MODE && account && !currentUser) {
       for (const o of orders) if (!mine.some(m => m.order.id === o.id)) mine.push({ order: o, isLive: true });
     }
     return mine.sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt));
   }, [orders, account, currentUser]);
-
-  const handleSignIn = async () => {
-    setSigningIn(true);
-    setSignInError(await signInWithGoogle());
-    setSigningIn(false);
-  };
 
   const askOnWhatsApp = (id: string) =>
     whatsappLink(settings.whatsapp, `Hello Powermeat! Please give me an update on order ${id}.`);
@@ -45,31 +38,33 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({ onReorder, onNavigat
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-16">
         {!DEMO_MODE && (
           <div className="panel p-5 sm:p-8">
-            {account && !currentUser ? (
+            {account ? (
               <>
-                <h2 className="display text-3xl">Signed in as {account.email}</h2>
+                <h2 className="display text-3xl">Signed in as {currentUser?.name ?? account.email}</h2>
                 <p className="mt-2 text-ink-soft">
-                  You see the live status of every order placed with this email address.
+                  {account.emailVerified || !account.usesPassword
+                    ? 'You see the live status of every order placed with this email address.'
+                    : 'Confirm your email address (check your inbox for our link) to see the live status of your orders.'}
                 </p>
-                <button type="button" onClick={logout} className="btn btn-outline mt-5">
-                  Sign out
-                </button>
+                <div className="mt-5 flex flex-col sm:flex-row gap-2.5">
+                  {currentUser && (
+                    <button type="button" onClick={onNavigateAdmin} className="btn btn-primary">
+                      Open the business area
+                    </button>
+                  )}
+                  <button type="button" onClick={logout} className="btn btn-outline">
+                    Sign out
+                  </button>
+                </div>
               </>
             ) : (
               <>
                 <h2 className="display text-3xl">See the live status of your orders</h2>
-                <p className="mt-2 text-ink-soft">
-                  Sign in with the Google account for the email you gave at checkout.
-                </p>
-                <button type="button" onClick={handleSignIn} disabled={signingIn} className="btn btn-primary mt-5">
+                <p className="mt-2 text-ink-soft">Sign in with the email address you gave at checkout.</p>
+                <button type="button" onClick={onNavigateSignIn} className="btn btn-primary mt-5">
                   <LogIn size={18} />
-                  <span>{signingIn ? 'Opening Google' : 'Sign in with Google'}</span>
+                  <span>Sign in</span>
                 </button>
-                {signInError && (
-                  <p className="field-error" role="alert">
-                    {signInError}
-                  </p>
-                )}
               </>
             )}
           </div>

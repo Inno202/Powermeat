@@ -31,7 +31,7 @@ import { AdminActivityLogs } from './AdminActivityLogs';
 import { formatZAR, calculateDeliveryFee } from '../../utils/pricing';
 import { LIMITS, cleanText } from '../../utils/validate';
 import { DEMO_MODE } from '../../services/store';
-import { StaffSignIn } from './StaffSignIn';
+import { SignIn } from '../account/SignIn';
 import { toast } from '../ui/feedback';
 
 const ROLES: Array<{ id: Role; label: string; does: string }> = [
@@ -138,7 +138,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
     setLoginError('');
     const result = loginWithEmail(loginEmailInput);
     if (result === 'inactive') {
-      setLoginError('This staff account has been deactivated. Please contact the Owner.');
+      setLoginError('This account has been switched off. Please speak to the Owner.');
     } else if (result !== 'ok') {
       // The same message whether or not the email exists, so accounts cannot be guessed.
       setLoginError('We could not sign you in with that email.');
@@ -146,7 +146,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
   };
 
   if (!currentUser && !DEMO_MODE) {
-    return <StaffSignIn onNavigateHome={onNavigateHome} />;
+    return <SignIn onNavigateHome={onNavigateHome} onOpenAccount={() => (window.location.hash = 'my-orders')} />;
   }
 
   if (!currentUser) {
@@ -157,7 +157,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
             <Logo size="lg" showTagline />
           </button>
           <h1 className="display text-4xl mt-6">
-            Staff sign <span className="text-brand-accent">in</span>
+            Sign <span className="text-brand-accent">in</span>
           </h1>
 
           {!DEMO_MODE ? (
@@ -174,7 +174,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
 
               <form onSubmit={handleLoginSubmit} noValidate className="mt-6">
                 <label htmlFor="staff-email" className="field-label">
-                  Staff email
+                  Email
                 </label>
                 <input
                   id="staff-email"
