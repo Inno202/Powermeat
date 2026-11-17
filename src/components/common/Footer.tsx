@@ -9,7 +9,7 @@ interface FooterProps {
   onNavigateCategory: (cat: string) => void;
 }
 
-const linkClass = 'min-h-[44px] inline-flex items-center text-left text-white/80 hover:text-white transition-colors';
+const linkClass = 'min-h-[44px] min-w-[44px] inline-flex items-center text-left text-white/80 hover:text-white transition-colors';
 
 export const Footer: React.FC<FooterProps> = ({ onNavigatePage, onNavigateCategory }) => {
   const { settings } = useStore();
@@ -97,8 +97,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigatePage, onNavigateCatego
             <button type="button" onClick={() => onNavigatePage('wholesale')} className={linkClass}>
               Wholesale
             </button>
-            <button type="button" onClick={() => onNavigatePage('admin')} className={linkClass}>
-              Staff sign in
+            <button type="button" onClick={() => onNavigatePage('signin')} className={linkClass}>
+              Sign in
             </button>
           </div>
         </div>

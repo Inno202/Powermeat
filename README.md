@@ -14,7 +14,7 @@ The site runs on **GitHub Pages** and stores everything in the **Firebase projec
 
 **Already done in the code**
 - Orders, products, specials, delivery areas, settings, staff and the activity log live in Cloud Firestore.
-- Staff sign in with Google or email and password (Firebase Authentication). Customers can sign in with Google on *Track my order* to see live status.
+- One sign-in for everyone (Google, or email and password), from *Sign in* in the header, menu or footer. The role on the account decides what opens: Owner, Manager, Counter and Driver go to the business area and see only their role's sections; everyone else goes to *My account* with the live status of orders placed with their email.
 - `firestore.rules` decides who may read and change what. `npm run test:rules` proves it with 68 forged-request tests.
 - `.github/workflows/deploy.yml` runs the type check, unit tests, rule tests and dependency scan on every pull request, and on `main` builds and publishes to GitHub Pages.
 
@@ -22,9 +22,9 @@ The site runs on **GitHub Pages** and stores everything in the **Firebase projec
 1. **Publish the database rules.** Firebase console → Firestore Database → Rules → paste the whole of `firestore.rules` → Publish. Do this before the site goes live.
 2. **Allow the website address to sign in.** Firebase console → Authentication → Settings → Authorised domains → add `inno202.github.io`.
 3. **Turn on GitHub Pages.** GitHub repo → Settings → Pages → Source: **GitHub Actions**. Then merge to `main` (or re-run the workflow). The site appears at `https://inno202.github.io/Powermeat/`.
-4. **Make yourself Owner.** Open `https://inno202.github.io/Powermeat/#admin`, sign in, and follow *Setting up as the Owner for the first time?* (it shows your account code and the four fields to add in Firestore).
+4. **Make yourself Owner.** Open `https://inno202.github.io/Powermeat/#admin`, sign in, and follow *Setting up as the Owner for the first time?* under *No access to the business area* (it shows your account code and the four fields to add in Firestore).
 5. **Load the catalogue.** In the staff area: Settings → *Load the starting catalogue*. Then edit products and prices as needed.
-6. **Invite staff.** Staff → *Invite staff* (name, email, role). They sign in with that email using Google, or choose *Create a password* and confirm their email.
+6. **Give people roles.** Staff → *Invite staff* (name, email, role). They use the normal *Sign in* with that email (Google, or *Create an account* and confirm the email) and get exactly that role.
 
 **Recommended next**
 - Firebase console → App Check → register the web app with reCAPTCHA, then enforce it for Firestore (blocks bots placing fake orders).

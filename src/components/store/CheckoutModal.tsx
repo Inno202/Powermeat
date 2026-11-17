@@ -39,7 +39,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     deliveryAreas,
     settings,
     createOrder,
-    clearCart
+    clearCart,
+    account
   } = useStore();
 
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('delivery');
@@ -70,7 +71,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   // Customer contact info
   const [customerName, setCustomerName] = useState('');
   const [customerCell, setCustomerCell] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  // A signed-in customer's orders are linked to their account by email.
+  const [customerEmail, setCustomerEmail] = useState(account?.email ?? '');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
   // POPIA: marketing consent must be an active choice, so the box starts unticked.

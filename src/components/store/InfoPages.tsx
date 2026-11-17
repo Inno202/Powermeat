@@ -271,8 +271,8 @@ export const PrivacyPolicyPage: React.FC<PageProps> = () => {
           </p>
           <p>
             This device keeps your cart and a copy of the orders you placed here, so you can see and repeat them. If you
-            sign in with Google on the Track my order page, we use your email address only to show the orders placed
-            with it.
+            create an account or sign in with Google, we keep your email address (and a password, stored only in
+            scrambled form by Firebase) and use it only to sign you in and show the orders placed with that email.
           </p>
         </Clause>
 
@@ -280,7 +280,7 @@ export const PrivacyPolicyPage: React.FC<PageProps> = () => {
           <ul className="list-disc pl-5 space-y-2">
             <li>
               <strong className="text-ink">Google Firebase:</strong> Stores orders and the product catalogue (Cloud
-              Firestore) and handles sign-in for staff and for customers who choose to sign in (Firebase
+              Firestore) and handles sign-in for everyone who chooses to create an account (Firebase
               Authentication).
             </li>
             <li>

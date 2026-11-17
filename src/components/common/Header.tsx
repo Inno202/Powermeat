@@ -1,18 +1,16 @@
 import React from 'react';
 import { ShoppingCart, User, Menu, X, MapPin } from 'lucide-react';
 import { Logo } from './Logo';
-import { useStore } from '../../services/store';
+import { useStore, DEMO_MODE } from '../../services/store';
 
 interface HeaderProps {
   onNavigateHome: () => void;
-  onNavigateAdmin: () => void;
-  onNavigateMyOrders: () => void;
+  onNavigatePage: (page: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onNavigateHome,
-  onNavigateAdmin,
-  onNavigateMyOrders
+  onNavigatePage
 }) => {
   const {
     cartItemCount,
@@ -20,8 +18,13 @@ export const Header: React.FC<HeaderProps> = ({
     isNavDrawerOpen,
     setIsNavDrawerOpen,
     currentUser,
+    account,
     settings
   } = useStore();
+
+  // One sign-in for everyone; the role on the account decides where it leads.
+  const accountTarget = currentUser || DEMO_MODE ? 'admin' : account ? 'my-orders' : 'signin';
+  const accountLabel = currentUser ? currentUser.name.split(' ')[0] : account ? 'My account' : 'Sign in';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-paper/95 backdrop-blur border-b border-ink/10">
@@ -50,22 +53,23 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <button
-            type="button"
-            onClick={onNavigateMyOrders}
-            className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
-          >
-            My orders
-          </button>
+          {!(account && !currentUser) && (
+            <button
+              type="button"
+              onClick={() => onNavigatePage('my-orders')}
+              className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
+            >
+              My orders
+            </button>
+          )}
 
           <button
             type="button"
-            onClick={onNavigateAdmin}
-            aria-label={currentUser ? `Staff area, signed in as ${currentUser.name}` : 'Staff sign in'}
+            onClick={() => onNavigatePage(accountTarget)}
             className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
           >
             <User size={18} />
-            <span>{currentUser ? currentUser.name.split(' ')[0] : 'Staff'}</span>
+            <span>{accountLabel}</span>
           </button>
 
           <button

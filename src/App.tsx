@@ -25,10 +25,12 @@ const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m =
 import { Product, Order } from './types';
 import { MapPin, Phone, MessageCircle, Clock, Search } from 'lucide-react';
 import { FeedbackHost } from './components/ui/feedback';
+import { SignIn } from './components/account/SignIn';
+import { DEMO_MODE } from './services/store';
 import { whatsappLink, telLink } from './utils/contact';
 import { rememberMyOrder } from './utils/myOrders';
 
-const KNOWN_PAGES = ['admin', 'my-orders', 'delivery_areas', 'wholesale', 'contact', 'privacy'];
+const KNOWN_PAGES = ['admin', 'signin', 'my-orders', 'delivery_areas', 'wholesale', 'contact', 'privacy'];
 
 const CATALOGUE_FILTERS = [
   'All',
@@ -50,7 +52,9 @@ function StoreFront() {
     setIsNavDrawerOpen,
     addToCart,
     settings,
-    catalogueReady
+    catalogueReady,
+    authStatus,
+    account
   } = useStore();
 
   const [activePage, setActivePage] = useState<string>('store');
@@ -82,6 +86,20 @@ function StoreFront() {
     }
     window.scrollTo({ top: 0 });
   };
+
+  useEffect(() => {
+    if (activePage !== 'signin') return;
+    // The demo has its own password-free sign-in inside the business area.
+    if (DEMO_MODE) return navigateTo('admin');
+    if (authStatus === 'staff') navigateTo('admin');
+    else if (
+      (authStatus === 'not_staff' || authStatus === 'inactive') &&
+      account &&
+      (account.emailVerified || !account.usesPassword)
+    ) {
+      navigateTo('my-orders');
+    }
+  }, [activePage, authStatus, account?.emailVerified]);
 
   const handleSelectCategory = (cat: string) => {
     setActiveCategory(cat);
@@ -162,8 +180,7 @@ function StoreFront() {
       {/* Global Header */}
       <Header
         onNavigateHome={() => navigateTo('store')}
-        onNavigateAdmin={() => navigateTo('admin')}
-        onNavigateMyOrders={() => navigateTo('my-orders')}
+        onNavigatePage={navigateTo}
       />
 
       {/* Slide-Down Navigation Drawer */}
@@ -185,10 +202,14 @@ function StoreFront() {
             }}
             onReorder={handleReorder}
           />
+        ) : activePage === 'signin' ? (
+          <SignIn embedded onNavigateHome={() => navigateTo('store')} onOpenAccount={() => navigateTo('my-orders')} />
         ) : activePage === 'my-orders' ? (
           <MyOrdersView
             onReorder={handleReorder}
             onNavigateHome={() => navigateTo('store')}
+            onNavigateSignIn={() => navigateTo('signin')}
+            onNavigateAdmin={() => navigateTo('admin')}
           />
         ) : activePage === 'delivery_areas' ? (
           <DeliveryAreasPage onNavigateHome={() => navigateTo('store')} />
