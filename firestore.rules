@@ -73,7 +73,7 @@ service cloud.firestore {
       return incoming().keys().hasOnly([
           'id', 'name', 'slug', 'category', 'subCategory', 'sku', 'description', 'pricingType',
           'price', 'originalPrice', 'weightKg', 'isFreeDelivery', 'stockStatus', 'sortOrder',
-          'tags', 'imageUrl', 'images', 'hamperItems', 'options', 'isSpecial', 'specialLabel',
+          'tags', 'imageUrl', 'photoVersion', 'images', 'hamperItems', 'options', 'isSpecial', 'specialLabel',
           'specialEndDate']) &&
         incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 150 &&
         incoming().category is string && incoming().category.size() <= 80 &&
@@ -82,9 +82,21 @@ service cloud.firestore {
         incoming().pricingType in ['fixed', 'per_kg', 'per_bag', 'per_bucket'] &&
         incoming().stockStatus in ['in_stock', 'low_stock', 'out_of_stock', 'hidden'] &&
         incoming().price is number && incoming().price >= 0 && incoming().price <= 1000000 &&
+        (!('photoVersion' in incoming()) || incoming().photoVersion is number) &&
         (!('imageUrl' in incoming()) ||
           (incoming().imageUrl is string && incoming().imageUrl.size() <= 500 &&
            incoming().imageUrl.matches('^https://.*')));
+    }
+
+    // The shop's own product photos, shrunk in the browser (about 300 KB at most).
+    match /product_photos/{productId} {
+      allow read: if true;
+      allow create, update: if isManager() && isValidId(productId) &&
+        incoming().keys().hasOnly(['data', 'updatedAt', 'updatedBy']) &&
+        incoming().data is string && incoming().data.size() <= 300000 &&
+        incoming().data.matches('^data:image/(webp|jpeg);base64,.*') &&
+        incoming().updatedBy == request.auth.uid;
+      allow delete: if isManager() && isValidId(productId);
     }
 
     match /products/{productId} {

@@ -1,5 +1,4 @@
 import React from 'react';
-import { MapPin, Clock, Phone, MessageCircle } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR } from '../../utils/pricing';
 import { whatsappLink, telLink } from '../../utils/contact';
@@ -119,11 +118,9 @@ export const WholesalePage: React.FC<PageProps> = () => {
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <a href={wholesaleWa} target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp hover:bg-white hover:text-ink">
-            <MessageCircle size={18} />
             <span>WhatsApp the wholesale desk</span>
           </a>
           <a href={telLink(settings.phone1)} className="btn btn-outline-light num">
-            <Phone size={18} />
             <span>Call {settings.phone1}</span>
           </a>
         </div>
@@ -140,7 +137,6 @@ export const ContactPage: React.FC<PageProps> = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <ul className="num space-y-6">
           <li className="flex items-start gap-3.5">
-            <MapPin size={22} className="text-brand-accent-deep shrink-0 mt-1" />
             <div>
               <h2 className="font-semibold">Store address</h2>
               <p className="text-ink-soft">{settings.address}</p>
@@ -151,7 +147,6 @@ export const ContactPage: React.FC<PageProps> = () => {
             </div>
           </li>
           <li className="flex items-start gap-3.5">
-            <Phone size={22} className="text-brand-accent-deep shrink-0 mt-1" />
             <div>
               <h2 className="font-semibold">Phone</h2>
               <p className="flex flex-wrap gap-x-4">
@@ -165,7 +160,6 @@ export const ContactPage: React.FC<PageProps> = () => {
             </div>
           </li>
           <li className="flex items-start gap-3.5">
-            <MessageCircle size={22} className="text-brand-accent-deep shrink-0 mt-1" />
             <div>
               <h2 className="font-semibold">WhatsApp orders and enquiries</h2>
               <a href={whatsappLink(settings.whatsapp)} target="_blank" rel="noopener noreferrer" className="link">
@@ -174,7 +168,6 @@ export const ContactPage: React.FC<PageProps> = () => {
             </div>
           </li>
           <li className="flex items-start gap-3.5">
-            <Clock size={22} className="text-brand-accent-deep shrink-0 mt-1" />
             <div>
               <h2 className="font-semibold">Trading hours</h2>
               <p className="text-ink-soft">{settings.tradingHours.weekdays}</p>

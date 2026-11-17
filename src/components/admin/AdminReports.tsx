@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { BarChart3, Download, TrendingUp, DollarSign, Package, PieChart } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR } from '../../utils/pricing';
 
@@ -87,7 +86,6 @@ export const AdminReports: React.FC = () => {
           onClick={handleExportReportCSV}
           className="btn btn-sm btn-outline"
         >
-          <Download size={15} />
           <span>Export Sales CSV</span>
         </button>
       </div>

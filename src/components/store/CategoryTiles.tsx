@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
 import { ProductPhoto } from '../ui/ProductPhoto';
 
 interface CategoryTilesProps {
@@ -72,7 +71,6 @@ export const CategoryTiles: React.FC<CategoryTilesProps> = ({ activeCategory, on
               <span className="block p-3.5">
                 <span className="display text-xl flex items-start justify-between gap-2">
                   <span className="line-clamp-2">{cat.name}</span>
-                  <ArrowRight size={16} className="shrink-0 mt-1 text-brand-accent-deep" />
                 </span>
                 <span className="block text-sm text-ink-soft mt-1 line-clamp-2">{cat.subtitle}</span>
               </span>

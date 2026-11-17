@@ -1,5 +1,4 @@
 import React from 'react';
-import { ShoppingCart, Truck } from 'lucide-react';
 import { Product } from '../../types';
 import { formatZAR, calcPricePerKg } from '../../utils/pricing';
 import { useStore } from '../../services/store';
@@ -35,7 +34,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
         aria-label={`View ${product.name}`}
         className="relative block aspect-[4/3] w-full bg-sand overflow-hidden text-left"
       >
-        <ProductPhoto src={product.imageUrl} alt={product.name} className="photo-zoom" />
+        <ProductPhoto product={product} alt={product.name} className="photo-zoom" />
 
         <span className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start">
           {product.isSpecial && (
@@ -43,7 +42,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           )}
           {product.isFreeDelivery && (
             <span className="badge bg-white text-ink">
-              <Truck size={14} />
               Free delivery
             </span>
           )}
@@ -76,7 +74,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           aria-label={`Add ${product.name} to cart`}
           className="btn btn-accent btn-block mt-4 px-3"
         >
-          <ShoppingCart size={18} />
           <span>{soldOut ? 'Sold out' : 'Add to cart'}</span>
         </button>
       </div>

@@ -1,18 +1,5 @@
 import React from 'react';
-import {
-  ShoppingBag,
-  Package,
-  Truck,
-  Store,
-  DollarSign,
-  AlertTriangle,
-  Plus,
-  ArrowRight,
-  TrendingUp,
-  Clock,
-  Flame,
-  CheckCircle2
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR } from '../../utils/pricing';
 
@@ -79,7 +66,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClick={onOpenNewOrderModal}
               className="btn btn-sm btn-accent"
             >
-              <Plus size={15} />
               <span>New Order</span>
             </button>
             <button
@@ -103,7 +89,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {unpaidEFTOrders.length > 0 && (
           <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-brand-yellow-deep shrink-0" />
               <span>
                 <strong>{unpaidEFTOrders.length} Unpaid EFT Orders:</strong> Waiting for bank clearance or customer POP screenshot.
               </span>
@@ -120,7 +105,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {endingSpecials.length > 0 && (
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="text-brand-accent-deep shrink-0" />
               <span>
                 <strong>{endingSpecials.length} Specials Ending Today:</strong> Check specials tab to re-run or archive.
               </span>
@@ -232,6 +216,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <button
               onClick={() => onNavigateTab('reports')}
+              aria-label="Open the reports"
               className="btn btn-sm btn-accent"
             >
               <ArrowRight size={18} />

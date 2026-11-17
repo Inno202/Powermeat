@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { History, Search, ShieldCheck } from 'lucide-react';
 import { useStore } from '../../services/store';
 
 export const AdminActivityLogs: React.FC = () => {
@@ -31,7 +30,6 @@ export const AdminActivityLogs: React.FC = () => {
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft pointer-events-none" />
         <input
           type="text"
           placeholder="Filter audit logs by action, staff name, role or order details..."

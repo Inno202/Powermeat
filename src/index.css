@@ -204,7 +204,18 @@
 .modal-overlay > * {
   margin-top: auto;
   margin-bottom: auto;
-  flex-shrink: 0;
+  /* Never taller than the screen: the window scrolls inside itself. */
+  max-height: calc(100dvh - 1rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (min-width: 640px) {
+  .modal-overlay > * { max-height: min(calc(100dvh - 2rem), 720px); }
+}
+/* While a window or drawer is open, the page behind it stays still. */
+html:has(.modal-overlay),
+html:has([aria-modal="true"]) {
+  overflow: hidden;
 }
 
 /* Drawers and sheets settle in. */

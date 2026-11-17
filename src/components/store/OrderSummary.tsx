@@ -1,5 +1,4 @@
 import React from 'react';
-import { Truck, Store } from 'lucide-react';
 import { Order } from '../../types';
 import { formatZAR } from '../../utils/pricing';
 import { formatDate, paymentMethodLabel, PAYMENT_STATUS_LABEL } from '../../utils/labels';
@@ -16,11 +15,6 @@ export const OrderSummary: React.FC<{ order: Order }> = ({ order }) => (
       <div>
         <dt className="text-sm text-ink-soft">{order.deliveryType === 'delivery' ? 'Delivery' : 'Collection in store'}</dt>
         <dd className="font-semibold flex items-center gap-2">
-          {order.deliveryType === 'delivery' ? (
-            <Truck size={18} className="text-brand-accent-deep shrink-0" />
-          ) : (
-            <Store size={18} className="text-brand-accent-deep shrink-0" />
-          )}
           {formatDate(order.deliveryDate)}
         </dd>
         <dd className="text-ink-soft">

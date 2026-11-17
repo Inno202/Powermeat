@@ -1,5 +1,4 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR, calcPricePerKg } from '../../utils/pricing';
 import { Product } from '../../types';
@@ -49,7 +48,7 @@ export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProd
                     aria-label={`View ${product.name}`}
                     className="relative block aspect-[4/3] bg-sand overflow-hidden"
                   >
-                    <ProductPhoto src={product.imageUrl} alt={product.name} className="photo-zoom" />
+                    <ProductPhoto product={product} alt={product.name} className="photo-zoom" />
                     <span className="badge bg-brand-accent text-white absolute top-2.5 left-2.5">{badgeLabel}</span>
                     <span className="price-tag absolute bottom-2.5 right-2.5">
                       {formatZAR(product.price)}
@@ -70,7 +69,6 @@ export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProd
                       onClick={() => addToCart(product, 1)}
                       className="btn btn-accent btn-block mt-4"
                     >
-                      <Plus size={18} />
                       <span>Add to cart</span>
                     </button>
                   </div>

@@ -1,17 +1,5 @@
 import React, { useState, useId } from 'react';
-import {
-  X,
-  Truck,
-  Store,
-  CreditCard,
-  Banknote,
-  FileText,
-  MessageCircle,
-  ArrowRight,
-  Upload,
-  Check,
-  Loader2
-} from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR, calculateDeliveryFee } from '../../utils/pricing';
 import { getAvailableDates, createWhatsAppOrderLink } from '../../utils/delivery';
@@ -149,7 +137,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!isValidCell(customerCell)) next.cell = 'Enter a South African cell number, for example 082 123 4567.';
     if (customerEmail.trim() && !isValidEmail(customerEmail.trim())) next.email = 'Check the email address, or leave it empty.';
     if (deliveryType === 'delivery' && cleanText(deliveryAddress, LIMITS.address).length < 5)
-      next.address = `Enter your street address and suburb in ${selectedArea.name}.`;
+      next.address = 'Enter your street address and suburb.';
     if (!selectedDateStr || !availableDates.some(d => d.dateStr === selectedDateStr))
       next.date = `Choose a ${deliveryType === 'delivery' ? 'delivery' : 'collection'} date.`;
     setErrors(next);
@@ -271,10 +259,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <button
                 type="button"
                 aria-pressed={deliveryType === 'delivery'}
-                onClick={() => setDeliveryType('delivery')}
+                onClick={() => {
+                  setDeliveryType('delivery');
+                  clearError('date');
+                }}
                 className={choiceClass(deliveryType === 'delivery')}
               >
-                <Truck size={22} className="shrink-0 text-brand-accent-deep" />
                 <span>
                   <span className="block font-semibold">Delivery</span>
                   <span className="block text-sm text-ink-soft">Goldfields towns</span>
@@ -283,10 +273,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <button
                 type="button"
                 aria-pressed={deliveryType === 'collection'}
-                onClick={() => setDeliveryType('collection')}
+                onClick={() => {
+                  setDeliveryType('collection');
+                  clearError('address');
+                  clearError('date');
+                }}
                 className={choiceClass(deliveryType === 'collection')}
               >
-                <Store size={22} className="shrink-0 text-brand-accent-deep" />
                 <span>
                   <span className="block font-semibold">Collect in store</span>
                   <span className="block text-sm text-ink-soft">145 Power Rd, free</span>
@@ -303,7 +296,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <select
               id="checkout-area"
               value={selectedAreaId}
-              onChange={e => setSelectedAreaId(e.target.value)}
+              onChange={e => {
+                setSelectedAreaId(e.target.value);
+                clearError('address');
+                clearError('date');
+              }}
               className="field"
             >
               {areaChoices.map(area => (
@@ -475,7 +472,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   onChange={() => setPaymentMethod('cod')}
                   className="w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
                 />
-                <Banknote size={22} className="shrink-0 text-ink-soft" />
                 <span>
                   <span className="block font-semibold">Pay on {dateWord.toLowerCase()}</span>
                   <span className="block text-sm text-ink-soft">
@@ -494,7 +490,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onChange={() => setPaymentMethod('eft')}
                     className="w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
                   />
-                  <FileText size={22} className="shrink-0 text-ink-soft" />
                   <span>
                     <span className="block font-semibold">Direct bank EFT</span>
                     <span className="num block text-sm text-ink-soft">
@@ -508,7 +503,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <p>Upload proof of payment now or WhatsApp it to 072 477 9314 with your order number.</p>
                     <div className="mt-2 flex items-center flex-wrap gap-3">
                       <label htmlFor={popUploadInputId} className="btn btn-sm btn-outline cursor-pointer">
-                        <Upload size={16} />
                         <span>Attach proof of payment</span>
                       </label>
                       <input
@@ -520,7 +514,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       />
                       {popFileUrl && (
                         <span className="inline-flex items-center gap-1.5 text-emerald-800 font-semibold">
-                          <Check size={16} />
                           File attached
                         </span>
                       )}
@@ -546,7 +539,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onChange={() => setPaymentMethod('online_card')}
                     className="w-5 h-5 shrink-0 accent-[var(--color-brand-accent)]"
                   />
-                  <CreditCard size={22} className="shrink-0 text-ink-soft" />
                   <span>
                     <span className="block font-semibold">Online card payment</span>
                     <span className="block text-sm text-ink-soft">Visa, Mastercard & Instant EFT (PayFast / Yoco)</span>
@@ -588,7 +580,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               ) : (
                 <>
                   <span className="num">Place order · {formatZAR(finalTotal)}</span>
-                  <ArrowRight size={18} className="btn-arrow" />
                 </>
               )}
             </button>
@@ -598,7 +589,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               disabled={!!submitting || cart.length === 0}
               className="btn btn-whatsapp btn-block"
             >
-              {submitting === 'whatsapp' ? <Loader2 size={20} className="animate-spin" /> : <MessageCircle size={20} />}
+              {submitting === 'whatsapp' ? <Loader2 size={20} className="animate-spin" /> : null}
               <span>{submitting === 'whatsapp' ? 'Opening WhatsApp' : 'Order on WhatsApp instead'}</span>
             </button>
           </div>

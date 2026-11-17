@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Package,
-  Plus,
-  Copy,
-  Trash2,
-  Edit,
-  TrendingUp,
-  Scale,
-  Sparkles,
-  Layers,
-  Percent,
-  Check,
-  X
-} from 'lucide-react';
+import { Copy, Trash2, Edit, X } from 'lucide-react';
 import { confirmAction, toast } from '../ui/feedback';
 import { safeImageUrl } from '../../utils/validate';
+import { shrinkPhoto } from '../../utils/photo';
+import { ProductPhoto } from '../ui/ProductPhoto';
 import { useStore } from '../../services/store';
 import { Product, PricingType, StockStatus, HamperItem } from '../../types';
 import { formatZAR, calcPricePerKg, applyBulkPriceUpdate } from '../../utils/pricing';
@@ -27,8 +16,13 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
     duplicateProduct,
     deleteProduct,
     bulkUpdatePrices,
-    currentUser
+    currentUser,
+    setProductPhoto
   } = useStore();
+  // A new photo chosen in the editor (already shrunk), or 'remove'.
+  const [pendingPhoto, setPendingPhoto] = useState<string | 'remove' | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,6 +93,8 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
 
   const handleOpenCreate = () => {
     setEditingProductId(null);
+    setPendingPhoto(null);
+    setPhotoError(null);
     setFormName('');
     setFormSlug('');
     setFormCategory('Family Hampers');
@@ -122,6 +118,8 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
 
   const handleOpenEdit = (p: Product) => {
     setEditingProductId(p.id);
+    setPendingPhoto(null);
+    setPhotoError(null);
     setFormName(p.name);
     setFormSlug(p.slug);
     setFormCategory(p.category);
@@ -166,6 +164,26 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
   // Recalculate hamper weight
   const calculatedHamperWeight = formHamperItems.reduce((acc, it) => acc + (it.weightKg || 0), 0);
 
+  const savePhoto = (productId: string) => {
+    if (pendingPhoto === 'remove') setProductPhoto(productId, null);
+    else if (pendingPhoto) setProductPhoto(productId, pendingPhoto).then(ok => ok && toast('Photo saved'));
+  };
+
+  const choosePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoError(null);
+    try {
+      setPendingPhoto(await shrinkPhoto(file));
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'That photo could not be used. Try another one.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
     const tagArray = formTags
@@ -193,8 +211,10 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
 
     if (editingProductId) {
       updateProduct(editingProductId, productPayload);
+      savePhoto(editingProductId);
     } else {
-      addProduct(productPayload);
+      const created = addProduct(productPayload);
+      savePhoto(created.id);
     }
     setIsEditorOpen(false);
   };
@@ -218,7 +238,6 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
             onClick={() => setIsBulkModalOpen(true)}
             className="btn btn-sm btn-outline"
           >
-            <TrendingUp size={15} />
             <span>Bulk Price Update</span>
           </button>
 
@@ -227,7 +246,6 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
             onClick={handleOpenCreate}
             className="btn btn-sm btn-accent"
           >
-            <Plus size={15} />
             <span>Add Product</span>
           </button>
         </div>
@@ -283,14 +301,8 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
                   <tr key={p.id} className="hover:bg-sand/40 transition">
                     {/* Item */}
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-white overflow-hidden shrink-0 border border-ink/10">
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-sm text-brand-accent-deep font-bold">
-                            PM
-                          </div>
-                        )}
+                      <div className="relative w-12 h-12 rounded-xl bg-sand overflow-hidden shrink-0">
+                        <ProductPhoto product={p} alt="" />
                       </div>
                       <div>
                         <strong className="text-ink text-sm block">{p.name}</strong>
@@ -513,7 +525,6 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
                     onClick={handleAddHamperLine}
                     className="btn btn-sm btn-outline"
                   >
-                    <Plus size={13} />
                     <span>Add Item Line</span>
                   </button>
                 </div>
@@ -592,8 +603,36 @@ export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => voi
                   </select>
                 </div>
 
-                <div>
-                  <label className="field-label">Image URL</label>
+                <div className="sm:col-span-3">
+                  <span className="field-label">Photo</span>
+                  <div className="flex items-start gap-4">
+                    <div className="relative w-28 h-24 shrink-0 rounded-2xl overflow-hidden bg-sand">
+                      {pendingPhoto && pendingPhoto !== 'remove' ? (
+                        <img src={pendingPhoto} alt="New photo" className="w-full h-full object-cover" />
+                      ) : pendingPhoto === 'remove' ? null : (
+                        <ProductPhoto product={products.find(x => x.id === editingProductId)} alt="Current photo" eager />
+                      )}
+                    </div>
+                    <div className="flex flex-col items-start gap-2">
+                      <label className="btn btn-sm btn-outline cursor-pointer">
+                        {photoBusy ? 'Preparing photo' : 'Take or choose a photo'}
+                        <input type="file" accept="image/*" onChange={choosePhoto} className="sr-only" />
+                      </label>
+                      {(pendingPhoto && pendingPhoto !== 'remove') || products.find(x => x.id === editingProductId)?.photoVersion ? (
+                        <button type="button" onClick={() => setPendingPhoto('remove')} className="link text-sm">
+                          Remove the shop photo
+                        </button>
+                      ) : null}
+                      <p className="field-help mt-0">
+                        A clear photo of the real product, taken in good light. It is shrunk before saving.
+                      </p>
+                      {photoError && <p className="field-error mt-0" role="alert">{photoError}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="field-label">Or a photo web address (https)</label>
                   <input
                     type="url"
                     placeholder="https://..."

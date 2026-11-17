@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Truck, Clock, Calendar, Plus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, Edit } from 'lucide-react';
 import { toast } from '../ui/feedback';
 import { useStore } from '../../services/store';
 import { DeliveryArea } from '../../types';
@@ -53,7 +53,6 @@ export const AdminDeliverySettings: React.FC = () => {
       <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 panel">
         <div>
           <div className="flex items-center gap-2 text-ink font-bold text-sm mb-1">
-            <Clock size={18} className="text-brand-accent-deep" />
             <span>Standard Day-Before Order Cut-Off Time</span>
           </div>
           <p className="text-sm text-ink-soft leading-relaxed">
@@ -79,7 +78,6 @@ export const AdminDeliverySettings: React.FC = () => {
         {/* Blocked Dates (Holidays/Closures) */}
         <div>
           <div className="flex items-center gap-2 text-ink font-bold text-sm mb-1">
-            <Calendar size={18} className="text-brand-yellow-deep" />
             <span>Blocked Dates & Public Holidays</span>
           </div>
           <p className="text-sm text-ink-soft leading-relaxed">

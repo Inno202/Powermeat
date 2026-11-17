@@ -1,5 +1,4 @@
 import React from 'react';
-import { Phone, MessageCircle, MapPin, Clock } from 'lucide-react';
 import { Logo } from './Logo';
 import { useStore } from '../../services/store';
 import { whatsappLink, telLink } from '../../utils/contact';
@@ -44,7 +43,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigatePage, onNavigateCatego
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-white mb-3">Trading hours</h2>
             <div className="num text-sm flex items-start gap-2.5">
-              <Clock size={18} className="shrink-0 mt-0.5 text-brand-yellow" />
               <ul>
                 <li>{settings.tradingHours.weekdays}</li>
                 <li>{settings.tradingHours.saturday}</li>
@@ -61,11 +59,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigatePage, onNavigateCatego
             <h2 className="text-xs font-semibold uppercase tracking-widest text-white mb-3">Contact</h2>
             <ul className="num text-sm">
               <li className="flex items-start gap-2.5 py-2">
-                <MapPin size={18} className="shrink-0 mt-0.5 text-brand-yellow" />
                 <span>{settings.address}</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Phone size={18} className="shrink-0 text-brand-yellow" />
                 <span className="flex flex-wrap gap-x-2">
                   <a href={telLink(settings.phone1)} className={linkClass}>
                     {settings.phone1}
@@ -76,7 +72,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigatePage, onNavigateCatego
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
-                <MessageCircle size={18} className="shrink-0 text-brand-yellow" />
                 <a href={whatsappLink(settings.whatsapp)} target="_blank" rel="noopener noreferrer" className={linkClass}>
                   WhatsApp {settings.whatsapp}
                 </a>

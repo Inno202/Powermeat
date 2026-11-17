@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { RotateCcw, MessageCircle, LogIn } from 'lucide-react';
 import { useStore, DEMO_MODE } from '../../services/store';
 import { Order } from '../../types';
 import { getMyOrders } from '../../utils/myOrders';
@@ -62,7 +61,6 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({ onReorder, onNavigat
                 <h2 className="display text-3xl">See the live status of your orders</h2>
                 <p className="mt-2 text-ink-soft">Sign in with the email address you gave at checkout.</p>
                 <button type="button" onClick={onNavigateSignIn} className="btn btn-primary mt-5">
-                  <LogIn size={18} />
                   <span>Sign in</span>
                 </button>
               </>
@@ -99,12 +97,10 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({ onReorder, onNavigat
                 <OrderSummary order={order} />
                 <div className="mt-5 flex flex-col sm:flex-row gap-3">
                   <button type="button" onClick={() => onReorder(order)} className="btn btn-outline">
-                    <RotateCcw size={18} />
                     <span>Order these again</span>
                   </button>
                   {!isLive && !DEMO_MODE && (
                     <a href={askOnWhatsApp(order.id)} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
-                      <MessageCircle size={18} />
                       <span>Ask for an update</span>
                     </a>
                   )}

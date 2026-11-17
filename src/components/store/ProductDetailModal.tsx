@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, ShoppingCart, Truck, Check } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Product } from '../../types';
 import { formatZAR, calcPricePerKg, calculateLineTotal } from '../../utils/pricing';
 import { useStore } from '../../services/store';
@@ -65,7 +65,7 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-title"
-        className="sheet-in relative w-full max-w-md bg-paper text-ink rounded-3xl"
+        className="sheet-in relative w-full max-w-md md:max-w-3xl bg-paper text-ink rounded-3xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Stays in view while a long product is scrolled. */}
@@ -80,14 +80,13 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
           </button>
         </div>
 
-        <div className="p-3 sm:p-4">
-          <div className="flex flex-col gap-5">
+        <div className="p-3 sm:p-4 md:p-5">
+          <div className="flex flex-col gap-5 md:grid md:grid-cols-2 md:gap-6">
             <div>
-              <div className="relative aspect-[4/3] w-full rounded-[1.25rem] overflow-hidden bg-sand">
-                <ProductPhoto src={product.imageUrl} alt={product.name} eager />
+              <div className="relative aspect-[16/10] md:aspect-square w-full rounded-[1.25rem] overflow-hidden bg-sand">
+                <ProductPhoto product={product} alt={product.name} eager />
                 {product.isFreeDelivery && (
                   <span className="badge bg-white text-ink absolute top-3 left-3">
-                    <Truck size={14} />
                     Free delivery
                   </span>
                 )}
@@ -95,7 +94,7 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
               <p className="text-xs text-ink-soft mt-2 px-1">Image varies from product</p>
             </div>
 
-            <div className="flex flex-col px-2 pb-2">
+            <div className="flex flex-col px-2 pb-2 md:px-0 md:pt-8">
               <button
                 type="button"
                 onClick={() => {
@@ -168,7 +167,6 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
                 disabled={soldOut}
                 className="btn btn-accent btn-block mt-5"
               >
-                <ShoppingCart size={20} />
                 <span className="num">{soldOut ? 'Sold out' : `Add to cart · ${formatZAR(estimatedTotal)}`}</span>
               </button>
 
@@ -180,14 +178,13 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
           </div>
 
           {product.hamperItems && product.hamperItems.length > 0 && (
-            <section className="mt-6 px-2" aria-labelledby="inside-title">
+            <section className="mt-6 px-2 md:px-0" aria-labelledby="inside-title">
               <h3 id="inside-title" className="display text-2xl mb-3">
                 What's <span className="text-brand-accent">inside</span>
               </h3>
-              <ul className="space-y-2 text-sm">
+              <ul className="list-disc pl-5 space-y-2 text-sm md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-2 md:space-y-0">
                 {product.hamperItems.map((item, idx) => (
-                  <li key={item.id || idx} className="flex items-start gap-2.5">
-                    <Check size={18} className="text-brand-accent-deep shrink-0 mt-1" />
+                  <li key={item.id || idx}>
                     <span>{item.name}</span>
                   </li>
                 ))}
@@ -196,11 +193,11 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
           )}
 
           {related.length > 0 && (
-            <section className="mt-6 px-2 pb-2" aria-labelledby="related-title">
+            <section className="mt-6 px-2 pb-2 md:px-0" aria-labelledby="related-title">
               <h3 id="related-title" className="display text-2xl mb-3">
                 More {product.category}
               </h3>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 md:grid md:grid-cols-3">
                 {related.map(rel => (
                   <button
                     key={rel.id}
@@ -209,7 +206,7 @@ const ProductDetail: React.FC<ProductDetailModalProps & { product: Product }> = 
                     className="panel rounded-2xl p-2 flex items-center gap-3 text-left hover:border-ink/30 transition-colors"
                   >
                     <span className="relative w-14 h-14 rounded-xl bg-sand shrink-0 overflow-hidden block">
-                      <ProductPhoto src={rel.imageUrl} alt="" />
+                      <ProductPhoto product={rel} alt="" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold truncate">{rel.name}</span>

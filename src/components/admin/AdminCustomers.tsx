@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Users, Search, Download, ShieldCheck, Phone, MapPin } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR } from '../../utils/pricing';
 
@@ -90,13 +89,11 @@ export const AdminCustomers: React.FC = () => {
           onClick={handleExportCSV}
           className="btn btn-sm btn-outline"
         >
-          <Download size={15} />
           <span>Export Customer CSV</span>
         </button>
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft pointer-events-none" />
         <input
           type="text"
           placeholder="Search by customer name, phone number or town..."
