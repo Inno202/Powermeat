@@ -246,29 +246,30 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
   return (
     <div className="min-h-screen bg-paper text-ink flex flex-col">
       <header className="bg-charcoal text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <div className="flex items-center gap-4 min-w-0">
-            <button type="button" onClick={onNavigateHome} aria-label="Powermeat home" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 rounded-xl shrink-0">
-              <Logo size="sm" onDark />
-            </button>
-            <div className="min-w-0 border-l border-white/20 pl-4">
-              <p className="font-semibold truncate">{currentUser.name}</p>
-              <p className="text-sm text-white/80">{roleLabel}</p>
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <button type="button" onClick={onNavigateHome} aria-label="Powermeat home" className="self-start md:self-auto rounded-xl min-h-[44px] flex items-center">
+            <Logo size="sm" onDark />
+          </button>
 
-          <div className="flex items-center gap-2">
-            {!isDriver && (
-              <button type="button" onClick={() => setIsManualOrderOpen(true)} className="btn btn-sm btn-accent hover:bg-white hover:text-ink">
-                <span>New order</span>
+          {/* Name and role sit in line with the buttons: above them on phones, beside them on wider screens. */}
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
+            <div className="min-w-0">
+              <p className="font-semibold truncate leading-tight">{currentUser.name}</p>
+              <p className="text-sm text-white/80 leading-tight mt-0.5">{roleLabel}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {!isDriver && (
+                <button type="button" onClick={() => setIsManualOrderOpen(true)} className="btn btn-sm btn-accent hover:bg-white hover:text-ink">
+                  New order
+                </button>
+              )}
+              <button type="button" onClick={onNavigateHome} className="btn btn-sm btn-outline-light">
+                View store
               </button>
-            )}
-            <button type="button" onClick={onNavigateHome} className="btn btn-sm btn-outline-light">
-              <span>View store</span>
-            </button>
-            <button type="button" onClick={logout} className="btn btn-sm btn-outline-light">
-              <span>Sign out</span>
-            </button>
+              <button type="button" onClick={logout} className="btn btn-sm btn-outline-light">
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
 
