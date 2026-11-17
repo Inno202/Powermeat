@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowDown, MessageCircle, Pause, Play } from 'lucide-react';
+import { Pause, Play } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { AccentTitle, HERO_PHOTOS } from '../ui/PageHero';
 import { whatsappLink } from '../../utils/contact';
@@ -59,10 +59,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOrderNow }) => {
           <div className="mt-7 flex flex-col sm:flex-row gap-3">
             <button type="button" onClick={onOrderNow} className="btn btn-lg btn-accent hover:bg-white hover:text-ink">
               <span>Order now</span>
-              <ArrowDown size={18} />
             </button>
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-outline-light">
-              <MessageCircle size={18} />
               <span>Order on WhatsApp</span>
             </a>
           </div>

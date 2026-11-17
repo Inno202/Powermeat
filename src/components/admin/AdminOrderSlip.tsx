@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Order } from '../../types';
 import { formatZAR } from '../../utils/pricing';
 import { useStore } from '../../services/store';
@@ -31,7 +31,6 @@ export const AdminOrderSlip: React.FC<AdminOrderSlipProps> = ({
         {/* Modal Controls (Not printed) */}
         <div className="no-print flex items-center justify-between px-6 py-3.5 bg-neutral-950 border-b border-neutral-800">
           <div className="flex items-center gap-2">
-            <Printer size={18} className="text-[#D7141A]" />
             <span className="font-heading font-bold text-sm uppercase text-white tracking-wide">
               {mode === 'thermal_80mm'
                 ? '80mm Thermal Receipt Preview'
@@ -46,7 +45,6 @@ export const AdminOrderSlip: React.FC<AdminOrderSlipProps> = ({
               onClick={handlePrint}
               className="bg-[#D7141A] hover:bg-[#ba0f14] text-white font-bold text-xs uppercase tracking-wide px-4 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
             >
-              <Printer size={15} />
               <span>Print Now</span>
             </button>
             <button

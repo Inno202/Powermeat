@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Flame,
-  Plus,
-  RotateCcw,
-  Archive,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  Trash2,
-  Tag,
-  ArrowRight
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { SpecialCampaign } from '../../types';
 import { formatZAR } from '../../utils/pricing';
@@ -87,7 +75,6 @@ export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => voi
           onClick={() => setIsCreateOpen(true)}
           className="btn btn-sm btn-accent"
         >
-          <Plus size={15} />
           <span>Create Special</span>
         </button>
       </div>
@@ -102,7 +89,6 @@ export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => voi
               : 'border-transparent text-ink-soft hover:text-ink'
           }`}
         >
-          <Flame size={15} className="text-brand-accent-deep" />
           <span>Active Campaigns ({activeSpecials.length})</span>
         </button>
 
@@ -114,7 +100,6 @@ export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => voi
               : 'border-transparent text-ink-soft hover:text-ink'
           }`}
         >
-          <Archive size={15} className="text-brand-yellow-deep" />
           <span>Expired / Archived ({archivedSpecials.length})</span>
         </button>
       </div>
@@ -157,7 +142,6 @@ export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => voi
 
                 <div className="mt-3 pt-3 border-t border-ink/10 text-sm text-ink-soft space-y-1">
                   <div className="flex items-center gap-2">
-                    <Calendar size={13} className="text-brand-yellow-deep" />
                     <span>
                       Start: {new Date(special.startDate).toLocaleDateString()}
                     </span>
@@ -202,7 +186,6 @@ export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => voi
                     }}
                     className="btn btn-sm btn-accent"
                   >
-                    <RotateCcw size={14} />
                     <span>Re-Run Campaign</span>
                   </button>
                 )}

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Shield, UserX, UserCheck, KeyRound } from 'lucide-react';
 import { confirmAction } from '../ui/feedback';
 import { useStore, DEMO_MODE } from '../../services/store';
 import { Role, UserProfile } from '../../types';
@@ -50,7 +49,6 @@ export const AdminStaff: React.FC = () => {
             onClick={() => setIsInviteOpen(true)}
             className="btn btn-sm btn-accent"
           >
-            <UserPlus size={15} />
             <span>{DEMO_MODE ? "Add staff" : "Invite staff"}</span>
           </button>
         )}

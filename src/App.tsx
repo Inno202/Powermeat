@@ -23,7 +23,7 @@ import {
 // The staff area is loaded only when someone opens it, so shoppers download less.
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 import { Product, Order } from './types';
-import { MapPin, Phone, MessageCircle, Clock, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { FeedbackHost } from './components/ui/feedback';
 import { SignIn } from './components/account/SignIn';
 import { DEMO_MODE } from './services/store';
@@ -347,11 +347,9 @@ function StoreFront() {
 
                     <ul className="num mt-8 space-y-2">
                       <li className="flex items-start gap-3.5">
-                        <MapPin size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
                         <span className="py-2">{settings.address}</span>
                       </li>
                       <li className="flex items-start gap-3.5">
-                        <Phone size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
                         <span className="flex flex-wrap gap-x-4">
                           <a href={telLink(settings.phone1)} className="link">
                             {settings.phone1}
@@ -362,7 +360,6 @@ function StoreFront() {
                         </span>
                       </li>
                       <li className="flex items-start gap-3.5">
-                        <MessageCircle size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
                         <a
                           href={whatsappLink(settings.whatsapp)}
                           target="_blank"
@@ -373,7 +370,6 @@ function StoreFront() {
                         </a>
                       </li>
                       <li className="flex items-start gap-3.5">
-                        <Clock size={22} className="text-brand-accent-deep shrink-0 mt-2.5" />
                         <span className="py-2">
                           {settings.tradingHours.weekdays}
                           <br />

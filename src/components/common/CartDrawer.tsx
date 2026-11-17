@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Trash2, ArrowRight, Truck } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR, calculateLineTotal } from '../../utils/pricing';
 import { ProductPhoto } from '../ui/ProductPhoto';
@@ -78,7 +78,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                 isCartFreeDelivery ? 'bg-emerald-50 text-emerald-900' : 'bg-sand text-ink'
               }`}
             >
-              <Truck size={18} className="shrink-0 mt-0.5" />
               <span>
                 {isCartFreeDelivery
                   ? 'Free delivery unlocked. Your order includes a Family Hamper or Meat Combo.'
@@ -95,7 +94,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                 return (
                   <li key={`${item.product.id}-${item.selectedOption || ''}-${idx}`} className="py-4 flex gap-3.5">
                     <div className="relative w-20 h-20 rounded-2xl bg-sand shrink-0 overflow-hidden">
-                      <ProductPhoto src={item.product.imageUrl} alt="" />
+                      <ProductPhoto product={item.product} alt="" />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -161,7 +160,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                 className="btn btn-lg btn-accent btn-block mt-4"
               >
                 <span>Go to checkout</span>
-                <ArrowRight size={18} className="btn-arrow" />
               </button>
 
               <div className="flex justify-between items-center mt-1">

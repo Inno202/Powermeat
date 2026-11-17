@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR } from '../../utils/pricing';
 
@@ -12,9 +12,6 @@ export const FreeDeliveryStrip: React.FC = () => {
       <div className="max-w-7xl mx-auto rounded-3xl bg-charcoal text-white p-6 sm:p-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
-            <span className="shrink-0 w-12 h-12 rounded-full bg-brand-yellow text-ink flex items-center justify-center">
-              <Truck size={24} />
-            </span>
             <div>
               <h2 id="free-delivery-title" className="display text-3xl sm:text-4xl">
                 Free delivery on any Family Hamper or <span className="text-brand-yellow">Meat Combo</span>

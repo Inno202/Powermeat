@@ -39,6 +39,8 @@ export interface Product {
   sortOrder: number;
   tags: string[];
   imageUrl?: string;
+  /** Set when staff have uploaded the shop's own photo (stored in product_photos). */
+  photoVersion?: number;
   images?: string[];
   hamperItems?: HamperItem[]; // "What's inside" breakdown
   options?: string[]; // e.g. ["Whole", "Sliced"] for Pork Knuckle

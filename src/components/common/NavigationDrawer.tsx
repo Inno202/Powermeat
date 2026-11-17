@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Home, Truck, Building2, PhoneCall, ClipboardList, User, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useStore, DEMO_MODE } from '../../services/store';
 import { telLink } from '../../utils/contact';
 
@@ -69,27 +69,21 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
           <nav className="grid gap-x-10 gap-y-6 md:grid-cols-3 pb-4" aria-label="Main">
             <div>
               <button type="button" onClick={() => goPage('store')} className={rowClass}>
-                <Home size={20} className="text-brand-accent-deep" />
                 Home
               </button>
               <button type="button" onClick={() => goPage('my-orders')} className={rowClass}>
-                <ClipboardList size={20} className="text-brand-accent-deep" />
                 Track my order
               </button>
               <button type="button" onClick={() => goPage('delivery_areas')} className={rowClass}>
-                <Truck size={20} className="text-brand-accent-deep" />
                 Delivery areas and days
               </button>
               <button type="button" onClick={() => goPage('wholesale')} className={rowClass}>
-                <Building2 size={20} className="text-brand-accent-deep" />
                 Wholesale and bulk orders
               </button>
               <button type="button" onClick={() => goPage('contact')} className={rowClass}>
-                <PhoneCall size={20} className="text-brand-accent-deep" />
                 Contact and location
               </button>
               <button type="button" onClick={() => goPage(accountTarget)} className={rowClass}>
-                <User size={20} className="text-brand-accent-deep" />
                 {accountLabel}
               </button>
             </div>

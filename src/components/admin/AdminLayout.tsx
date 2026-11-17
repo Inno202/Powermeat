@@ -1,20 +1,5 @@
 import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  Package,
-  Flame,
-  Truck,
-  Users,
-  BarChart3,
-  UserCog,
-  Settings,
-  History,
-  LogOut,
-  Store,
-  Plus,
-  X
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { Role } from '../../types';
 import { Logo } from '../common/Logo';
@@ -224,16 +209,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['owner', 'manager', 'counter', 'driver'] },
-    { id: 'orders', label: isDriver ? 'My deliveries' : 'Orders', icon: ShoppingBag, roles: ['owner', 'manager', 'counter', 'driver'] },
-    { id: 'products', label: 'Products', icon: Package, roles: ['owner', 'manager'] },
-    { id: 'specials', label: 'Specials', icon: Flame, roles: ['owner', 'manager'] },
-    { id: 'delivery', label: 'Delivery', icon: Truck, roles: ['owner', 'manager'] },
-    { id: 'customers', label: 'Customers', icon: Users, roles: ['owner', 'manager'] },
-    { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['owner', 'manager'] },
-    { id: 'staff', label: 'Staff', icon: UserCog, roles: ['owner'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['owner'] },
-    { id: 'logs', label: 'Activity', icon: History, roles: ['owner', 'manager', 'counter'] }
+    { id: 'dashboard', label: 'Dashboard', roles: ['owner', 'manager', 'counter', 'driver'] },
+    { id: 'orders', label: isDriver ? 'My deliveries' : 'Orders', roles: ['owner', 'manager', 'counter', 'driver'] },
+    { id: 'products', label: 'Products', roles: ['owner', 'manager'] },
+    { id: 'specials', label: 'Specials', roles: ['owner', 'manager'] },
+    { id: 'delivery', label: 'Delivery', roles: ['owner', 'manager'] },
+    { id: 'customers', label: 'Customers', roles: ['owner', 'manager'] },
+    { id: 'reports', label: 'Reports', roles: ['owner', 'manager'] },
+    { id: 'staff', label: 'Staff', roles: ['owner'] },
+    { id: 'settings', label: 'Settings', roles: ['owner'] },
+    { id: 'logs', label: 'Activity', roles: ['owner', 'manager', 'counter'] }
   ].filter(item => item.roles.includes(currentRole || 'counter'));
 
   // A tab the current role may not open falls back to the dashboard.
@@ -257,17 +242,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
           <div className="flex items-center gap-2">
             {!isDriver && (
               <button type="button" onClick={() => setIsManualOrderOpen(true)} className="btn btn-sm btn-accent hover:bg-white hover:text-ink">
-                <Plus size={18} />
                 <span>New order</span>
               </button>
             )}
             <button type="button" onClick={onNavigateHome} className="btn btn-sm btn-outline-light">
-              <Store size={18} />
-              <span className="hidden sm:inline">View store</span>
+              <span>View store</span>
             </button>
             <button type="button" onClick={logout} className="btn btn-sm btn-outline-light">
-              <LogOut size={18} />
-              <span className="hidden sm:inline">Sign out</span>
+              <span>Sign out</span>
             </button>
           </div>
         </div>
@@ -310,7 +292,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
                   isActive ? 'border-brand-accent text-ink' : 'border-transparent text-ink-soft hover:text-ink'
                 }`}
               >
-                <item.icon size={18} />
                 <span>{item.label}</span>
               </button>
             );

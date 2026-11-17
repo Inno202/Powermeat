@@ -310,3 +310,24 @@ test('blocked: a customer reading invitations', async () => {
   await seedInvite();
   await assertFails(getDocs(collection(customer('c1', 'thabo@example.com'), 'staff_invites')));
 });
+
+// ----- Product photos -----
+const photo = (over = {}) => ({ data: 'data:image/webp;base64,AAAA', updatedAt: '2026-11-17T10:00:00Z', updatedBy: 'manager1', ...over });
+test('a manager can save a product photo, and anyone can see it', async () => {
+  await assertSucceeds(setDoc(doc(staff('manager1'), 'product_photos/p1'), photo()));
+  await assertSucceeds(getDoc(doc(guest(), 'product_photos/p1')));
+});
+test('blocked: counter staff or visitors saving product photos', async () => {
+  await assertFails(setDoc(doc(staff('counter1'), 'product_photos/p1'), photo({ updatedBy: 'counter1' })));
+  await assertFails(setDoc(doc(guest(), 'product_photos/p1'), photo({ updatedBy: '' })));
+});
+test('blocked: a photo that is a web page or an SVG', async () => {
+  await assertFails(setDoc(doc(staff('manager1'), 'product_photos/p1'), photo({ data: 'data:text/html;base64,AAAA' })));
+  await assertFails(setDoc(doc(staff('manager1'), 'product_photos/p1'), photo({ data: 'data:image/svg+xml;base64,AAAA' })));
+});
+test('blocked: an oversized photo', async () => {
+  await assertFails(setDoc(doc(staff('manager1'), 'product_photos/p1'), photo({ data: 'data:image/webp;base64,' + 'A'.repeat(300001) })));
+});
+test('a manager can mark a product as having its own photo', async () => {
+  await assertSucceeds(updateDoc(doc(staff('manager1'), 'products/p1'), { photoVersion: 1763373600000 }));
+});

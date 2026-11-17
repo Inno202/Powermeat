@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, User, Menu, X, MapPin } from 'lucide-react';
+import { ShoppingCart, Menu, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { useStore, DEMO_MODE } from '../../services/store';
 
@@ -31,7 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
       {settings.announcementBarActive && settings.announcementBarText && (
         <div className="bg-ink text-white text-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-center gap-2 text-center text-xs sm:text-sm leading-snug">
-            <MapPin size={16} className="shrink-0 text-brand-yellow hidden sm:block" />
             <span>{settings.announcementBarText}</span>
           </div>
         </div>
@@ -68,7 +67,6 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onNavigatePage(accountTarget)}
             className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
           >
-            <User size={18} />
             <span>{accountLabel}</span>
           </button>
 

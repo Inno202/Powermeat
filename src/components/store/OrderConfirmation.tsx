@@ -1,5 +1,4 @@
 import React from 'react';
-import { MessageCircle, RotateCcw } from 'lucide-react';
 import { Order } from '../../types';
 import { useStore } from '../../services/store';
 import { whatsappLink } from '../../utils/contact';
@@ -43,11 +42,9 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onC
           Back to the store
         </button>
         <a href={whatsappQuery} target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp">
-          <MessageCircle size={18} />
           <span>Chat about this order</span>
         </a>
         <button type="button" onClick={() => onReorder(order)} className="btn btn-outline">
-          <RotateCcw size={18} />
           <span>Order these again</span>
         </button>
       </div>

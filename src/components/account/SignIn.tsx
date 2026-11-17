@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Loader2, LogIn } from 'lucide-react';
+import { Copy, Loader2 } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { Logo } from '../common/Logo';
 import { toast } from '../ui/feedback';
@@ -73,18 +73,18 @@ export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () =
     <div
       className={
         embedded
-          ? 'flex justify-center px-4 py-12 md:py-16'
+          ? 'flex justify-center px-4 py-8 md:py-12'
           : 'min-h-screen bg-paper text-ink flex flex-col justify-center items-center p-4'
       }
     >
-      <div className="panel w-full max-w-md p-6 sm:p-8">
+      <div className="panel w-full max-w-md p-5 sm:p-6">
         {!embedded && (
-          <button type="button" onClick={onNavigateHome} aria-label="Powermeat home" className="rounded-xl min-h-[44px] flex items-center mb-6">
-            <Logo size="lg" />
+          <button type="button" onClick={onNavigateHome} aria-label="Powermeat home" className="rounded-xl min-h-[44px] flex items-center mb-4">
+            <Logo size="md" />
           </button>
         )}
         {children}
-        <button type="button" onClick={onNavigateHome} className="link mt-6 text-sm">
+        <button type="button" onClick={onNavigateHome} className="link mt-2 text-sm">
           Back to the store
         </button>
       </div>
@@ -217,23 +217,12 @@ export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () =
 
   return shell(
     <>
-      <h1 className="display text-4xl">
+      <h1 className="display text-3xl sm:text-4xl">
         Sign <span className="text-brand-accent">in</span>
       </h1>
 
-      <button
-        type="button"
-        onClick={() => run('google', signInWithGoogle)}
-        disabled={!!busy}
-        className="btn btn-primary btn-block mt-6"
-      >
-        {busy === 'google' ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
-        <span>Sign in with Google</span>
-      </button>
 
-      <p className="my-6 text-center text-sm text-ink-soft">or use your email</p>
-
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={submit} noValidate className="mt-5">
         <label htmlFor="signin-email" className="field-label">
           Email
         </label>
@@ -250,7 +239,7 @@ export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () =
 
         {mode !== 'reset' && (
           <>
-            <label htmlFor="signin-password" className="field-label mt-4">
+            <label htmlFor="signin-password" className="field-label mt-3">
               {mode === 'create' ? 'Choose a password' : 'Password'}
             </label>
             <input
@@ -279,13 +268,28 @@ export const SignIn: React.FC<{ onNavigateHome: () => void; onOpenAccount?: () =
           </p>
         )}
 
-        <button type="submit" disabled={!!busy} className="btn btn-accent btn-block mt-5">
+        <button type="submit" disabled={!!busy} className="btn btn-accent btn-block mt-4">
           {busy && busy !== 'google' ? <Loader2 size={18} className="animate-spin" /> : null}
           <span>{mode === 'create' ? 'Create my account' : mode === 'reset' ? 'Send a reset link' : 'Sign in'}</span>
         </button>
       </form>
 
-      <div className="mt-4 flex flex-col items-start">
+      {mode === 'sign_in' && (
+        <>
+          <p className="my-3 text-center text-sm text-ink-soft">or</p>
+          <button
+            type="button"
+            onClick={() => run('google', signInWithGoogle)}
+            disabled={!!busy}
+            className="btn btn-outline btn-block"
+          >
+            {busy === 'google' ? <Loader2 size={18} className="animate-spin" /> : null}
+            <span>Sign in with Google</span>
+          </button>
+        </>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-x-5">
         {mode !== 'sign_in' && (
           <button type="button" onClick={() => { setMode('sign_in'); setError(null); setNotice(null); }} className="link text-sm text-left">
             I already have a password

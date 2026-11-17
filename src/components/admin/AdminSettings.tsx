@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Settings, Save, CreditCard, Store, Bell, CheckCircle2 } from 'lucide-react';
 import { confirmAction, toast } from '../ui/feedback';
 import { useStore, DEMO_MODE } from '../../services/store';
 import { SEED_PRODUCTS } from '../../data/seedData';
@@ -53,7 +52,6 @@ export const AdminSettings: React.FC = () => {
 
       {savedSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center gap-2">
-          <CheckCircle2 size={16} className="text-emerald-800 shrink-0" />
           <span>Store settings successfully updated and broadcast to public site.</span>
         </div>
       )}
@@ -246,7 +244,6 @@ export const AdminSettings: React.FC = () => {
             type="submit"
             className="btn btn-sm btn-accent"
           >
-            <Save size={15} />
             <span>Save Store Settings</span>
           </button>
         </div>

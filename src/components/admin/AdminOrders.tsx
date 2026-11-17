@@ -1,22 +1,5 @@
 import React, { useState } from 'react';
-import { Store, X,
-  List,
-  Columns3,
-  Search,
-  Filter,
-  Printer,
-  Scale,
-  MessageCircle,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Eye,
-  Plus,
-  DollarSign,
-  ChevronRight,
-  ArrowUpDown,
-  FileText
-} from 'lucide-react';
+import { X, Printer, MessageCircle, Eye, FileText } from 'lucide-react';
 import { toast } from '../ui/feedback';
 import { proofKind } from '../../utils/validate';
 import { useStore } from '../../services/store';
@@ -170,7 +153,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
                     viewMode === 'list' ? 'bg-brand-accent text-white' : 'text-ink-soft hover:text-ink'
                   }`}
                 >
-                  <List size={15} />
                   <span>List</span>
                 </button>
                 <button
@@ -179,7 +161,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
                     viewMode === 'kanban' ? 'bg-brand-accent text-white' : 'text-ink-soft hover:text-ink'
                   }`}
                 >
-                  <Columns3 size={15} />
                   <span>Kanban</span>
                 </button>
               </div>
@@ -195,7 +176,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
                 }
                 className="btn btn-sm btn-outline"
               >
-                <Printer size={15} className="text-brand-yellow-deep" />
                 <span>Run Sheet</span>
               </button>
 
@@ -204,7 +184,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
                 onClick={onOpenNewOrderModal}
                 className="btn btn-sm btn-accent"
               >
-                <Plus size={15} />
                 <span>New Order</span>
               </button>
             </>
@@ -216,7 +195,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 panel">
         {/* Search Input */}
         <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft pointer-events-none" />
           <input
             type="text"
             placeholder="Search order #, customer, cell..."
@@ -337,11 +315,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
                         {/* Fulfillment & Area */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-1 font-semibold text-ink">
-                            {order.deliveryType === 'delivery' ? (
-                              <Truck size={13} className="text-brand-accent-deep" />
-                            ) : (
-                              <Store size={14} className="text-ink-soft" />
-                            )}
                             <span>{order.deliveryType === 'delivery' ? 'Delivery' : 'Collection'}</span>
                           </div>
                           <span className="text-ink-soft text-sm block">{order.area}</span>
@@ -661,7 +634,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ onOpenNewOrderModal })
                             }}
                             className="btn btn-sm btn-outline"
                           >
-                            <Scale size={13} className="text-brand-yellow-deep" />
                             <span>Weigh & Adjust</span>
                           </button>
                         )}

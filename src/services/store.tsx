@@ -141,6 +141,8 @@ interface StoreContextType {
   duplicateProduct: (id: string) => Product | null;
   deleteProduct: (id: string) => void;
   bulkUpdatePrices: (category: string, percentage: number) => void;
+  /** Saves the shop's own photo for a product (already shrunk), or removes it with null. */
+  setProductPhoto: (productId: string, photo: string | null) => Promise<boolean>;
 
   // Specials
   createSpecial: (special: Omit<SpecialCampaign, 'id'>) => SpecialCampaign;
@@ -599,6 +601,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logout = () => {
     if (currentUser) logActivity('Staff Logout', `${currentUser.name} signed out`);
+    // A shared phone should not hand the next person someone else's cart.
+    setCart([]);
+    setIsCartDrawerOpen(false);
     if (DEMO_MODE) setDemoUserId(null);
     else signOut(auth);
   };
@@ -711,6 +716,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       batch.commit().catch(writeFailed);
     }
     logActivity('Bulk Price Update', `Adjusted all prices in "${category}" by ${percentage > 0 ? '+' : ''}${percentage}%`);
+  };
+
+  const setProductPhoto = async (productId: string, photo: string | null): Promise<boolean> => {
+    if (DEMO_MODE) {
+      setProducts(prev => prev.map(p => (p.id === productId ? { ...p, imageUrl: photo ?? undefined } : p)));
+      return true;
+    }
+    try {
+      if (photo) {
+        await setDoc(doc(db, 'product_photos', productId), {
+          data: photo,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser?.id ?? ''
+        });
+        await updateDoc(doc(db, 'products', productId), { photoVersion: Date.now() });
+      } else {
+        await updateDoc(doc(db, 'products', productId), { photoVersion: deleteField() });
+        await deleteDoc(doc(db, 'product_photos', productId));
+      }
+      const p = products.find(x => x.id === productId);
+      logActivity(photo ? 'Product Photo Added' : 'Product Photo Removed', `${p?.name ?? productId}`);
+      return true;
+    } catch (e) {
+      writeFailed(e);
+      return false;
+    }
   };
 
   // ---------- Specials ----------
@@ -960,6 +991,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         duplicateProduct,
         deleteProduct,
         bulkUpdatePrices,
+        setProductPhoto,
         createSpecial,
         updateSpecial,
         rerunSpecial,
