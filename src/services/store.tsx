@@ -64,7 +64,26 @@ export interface CartItem {
 }
 
 /** Where the signed-in person stands with the staff area. */
-export type AuthStatus = 'loading' | 'signed_out' | 'not_staff' | 'inactive' | 'staff';
+export type AuthStatus = 'loading' | 'signed_out' | 'not_staff' | 'inactive' | 'staff' | 'needs_fix';
+
+const VALID_ROLES: Role[] = ['owner', 'manager', 'counter', 'driver'];
+
+/** What is wrong with a staff record typed in by hand, in plain words (empty if fine). */
+export function staffRecordProblems(record: Record<string, unknown>): string[] {
+  const problems: string[] = [];
+  if (!VALID_ROLES.includes(record.role as Role)) {
+    problems.push(
+      `role is ${JSON.stringify(record.role ?? null)}. It must be exactly one of: owner, manager, counter, driver (lower case, no spaces).`
+    );
+  }
+  if (typeof record.active !== 'boolean') {
+    problems.push(
+      `active is ${JSON.stringify(record.active ?? null)} saved as ${record.active === undefined ? 'missing' : typeof record.active}. Set its type to boolean and its value to true.`
+    );
+  }
+  if (typeof record.name !== 'string' || !record.name.trim()) problems.push('name is missing. Add a name field of type string.');
+  return problems;
+}
 
 export interface SignedInAccount {
   uid: string;
@@ -79,6 +98,8 @@ interface StoreContextType {
   orders: Order[];
   users: UserProfile[];
   staffInvites: StaffInvite[];
+  /** When the signed-in account's staff record is set up wrongly: what to fix. */
+  staffProblems: string[];
   deliveryAreas: DeliveryArea[];
   settings: SiteSettings;
   activityLogs: ActivityLog[];
@@ -263,6 +284,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [account, setAccount] = useState<SignedInAccount | null>(null);
   const [authReady, setAuthReady] = useState(DEMO_MODE);
   const [staffDoc, setStaffDoc] = useState<UserProfile | null | undefined>(undefined);
+  const staffProblems = staffDoc ? staffRecordProblems(staffDoc as unknown as Record<string, unknown>) : [];
   const claimTried = useRef<string | null>(null);
 
   // Demo: only the staff id is remembered, and the profile is looked up fresh, so a
@@ -279,7 +301,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const currentUser: UserProfile | null = DEMO_MODE
     ? users.find(u => u.id === demoUserId && u.active) || null
-    : staffDoc && staffDoc.active
+    : staffDoc && staffProblems.length === 0 && staffDoc.active === true
       ? staffDoc
       : null;
 
@@ -295,9 +317,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ? 'loading'
           : staffDoc === null
             ? 'not_staff'
-            : staffDoc.active
-              ? 'staff'
-              : 'inactive';
+            : staffProblems.length > 0
+              ? 'needs_fix'
+              : staffDoc.active === true
+                ? 'staff'
+                : 'inactive';
 
   const role = currentUser?.role;
   const isCounterUp = role === 'owner' || role === 'manager' || role === 'counter';
@@ -902,6 +926,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         orders,
         users,
         staffInvites,
+        staffProblems,
         deliveryAreas,
         settings,
         activityLogs,

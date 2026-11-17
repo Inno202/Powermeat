@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Package,
   Plus,
@@ -19,7 +19,7 @@ import { useStore } from '../../services/store';
 import { Product, PricingType, StockStatus, HamperItem } from '../../types';
 import { formatZAR, calcPricePerKg, applyBulkPriceUpdate } from '../../utils/pricing';
 
-export const AdminProducts: React.FC = () => {
+export const AdminProducts: React.FC<{ startNew?: boolean; onStarted?: () => void }> = ({ startNew, onStarted }) => {
   const {
     products,
     addProduct,
@@ -87,6 +87,15 @@ export const AdminProducts: React.FC = () => {
     }
     return true;
   });
+
+  // Opened from the dashboard's New product button: go straight to the empty form.
+  useEffect(() => {
+    if (startNew) {
+      handleOpenCreate();
+      onStarted?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startNew]);
 
   const handleOpenCreate = () => {
     setEditingProductId(null);
@@ -399,11 +408,11 @@ export const AdminProducts: React.FC = () => {
       {/* MODAL 1: PRODUCT & HAMPER BUILDER EDITOR */}
       {isEditorOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-2 sm:p-4"
           onClick={() => setIsEditorOpen(false)}
         >
           <div
-            className="relative w-full max-w-3xl text-ink p-6 space-y-5 my-6 max-h-[88vh] overflow-y-auto panel"
+            className="relative w-full max-w-3xl text-ink p-6 space-y-5 my-6 max-h-[88dvh] overflow-y-auto panel"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-ink/10 pb-3">
@@ -642,7 +651,7 @@ export const AdminProducts: React.FC = () => {
       {/* MODAL 2: BULK PRICE UPDATE MODAL WITH PREVIEW */}
       {isBulkModalOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setIsBulkModalOpen(false)}
         >
           <div
@@ -651,7 +660,6 @@ export const AdminProducts: React.FC = () => {
           >
             <div className="flex items-center justify-between border-b border-ink/10 pb-3">
               <h3 className="display flex items-center gap-2 text-2xl">
-                <TrendingUp size={18} className="text-brand-yellow-deep" />
                 <span>Bulk Price Adjustment</span>
               </h3>
               <button onClick={() => setIsBulkModalOpen(false)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-ink-soft hover:text-ink"><X size={18} /></button>

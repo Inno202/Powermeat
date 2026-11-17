@@ -26,7 +26,7 @@ export const AdminOrderSlip: React.FC<AdminOrderSlipProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm modal-overlay flex items-start justify-center p-2 sm:p-4">
       <div className="relative w-full max-w-3xl bg-neutral-900 text-neutral-100 rounded-2xl border border-neutral-700 shadow-2xl overflow-hidden my-6">
         {/* Modal Controls (Not printed) */}
         <div className="no-print flex items-center justify-between px-6 py-3.5 bg-neutral-950 border-b border-neutral-800">
@@ -59,7 +59,7 @@ export const AdminOrderSlip: React.FC<AdminOrderSlipProps> = ({
         </div>
 
         {/* Printable Area */}
-        <div className="p-6 bg-neutral-900 text-neutral-900 overflow-y-auto max-h-[80vh]">
+        <div className="p-6 bg-neutral-900 text-neutral-900 overflow-y-auto max-h-[80dvh]">
           {/* Printable Container targeted by CSS @media print */}
           <div id="printable-slip" className="bg-white text-black p-6 rounded-lg font-sans shadow-sm mx-auto">
             {/* 1. THERMAL 80MM RECEIPT */}

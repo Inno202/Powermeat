@@ -62,7 +62,6 @@ export const AdminSettings: React.FC = () => {
         {/* Butchery Details */}
         <div className="space-y-4">
           <h3 className="display flex items-center gap-2 border-b border-ink/10 pb-2 text-2xl">
-            <Store size={18} className="text-brand-accent-deep" />
             <span>Butchery Brand & Storefront</span>
           </h3>
 
@@ -141,7 +140,6 @@ export const AdminSettings: React.FC = () => {
         {/* Banner Texts */}
         <div className="space-y-4 pt-4 border-t border-ink/10">
           <h3 className="display flex items-center gap-2 text-2xl">
-            <Bell size={18} className="text-brand-yellow-deep" />
             <span>Store Announcements & Hero Banner</span>
           </h3>
 
@@ -179,7 +177,6 @@ export const AdminSettings: React.FC = () => {
         {/* Online Payment Gateway Toggle */}
         <div className="space-y-4 pt-4 border-t border-ink/10">
           <h3 className="display flex items-center gap-2 text-2xl">
-            <CreditCard size={18} className="text-emerald-800" />
             <span>Online Card Payments (PayFast / Yoco)</span>
           </h3>
 

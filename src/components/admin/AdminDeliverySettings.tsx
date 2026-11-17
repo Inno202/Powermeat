@@ -122,7 +122,6 @@ export const AdminDeliverySettings: React.FC = () => {
       <div className="overflow-hidden panel">
         <div className="p-4 bg-paper border-b border-ink/10 flex items-center justify-between">
           <h3 className="display flex items-center gap-2 text-2xl">
-            <Truck size={17} className="text-brand-accent-deep" />
             <span>Delivery Areas & Days Table</span>
           </h3>
           <span className="text-sm text-ink-soft">
@@ -180,7 +179,7 @@ export const AdminDeliverySettings: React.FC = () => {
       {/* EDIT AREA MODAL */}
       {editingArea && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setEditingArea(null)}
         >
           <div

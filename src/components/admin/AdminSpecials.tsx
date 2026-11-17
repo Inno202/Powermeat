@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  X,
   Flame,
   Plus,
   RotateCcw,
@@ -15,13 +16,21 @@ import { useStore } from '../../services/store';
 import { SpecialCampaign } from '../../types';
 import { formatZAR } from '../../utils/pricing';
 
-export const AdminSpecials: React.FC = () => {
+export const AdminSpecials: React.FC<{ startNew?: boolean; onStarted?: () => void }> = ({ startNew, onStarted }) => {
   const { specials, products, createSpecial, updateSpecial, rerunSpecial } = useStore();
 
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   // New special modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  // Opened from the dashboard's New special button: go straight to the form.
+  useEffect(() => {
+    if (startNew) {
+      setIsCreateOpen(true);
+      onStarted?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startNew]);
   const [formTitle, setFormTitle] = useState('');
   const [formLabel, setFormLabel] = useState('Month End Special');
   const [formStartDate, setFormStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -206,16 +215,19 @@ export const AdminSpecials: React.FC = () => {
       {/* CREATE SPECIAL MODAL */}
       {isCreateOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setIsCreateOpen(false)}
         >
           <div
-            className="w-full max-w-lg text-ink p-6 space-y-4 max-h-[85vh] overflow-y-auto panel"
+            className="w-full max-w-lg text-ink p-6 space-y-4 max-h-[85dvh] overflow-y-auto panel"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="display text-2xl">
-              Create Promotional Special
-            </h3>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="display text-2xl">Create Promotional Special</h3>
+              <button type="button" onClick={() => setIsCreateOpen(false)} aria-label="Close" className="icon-btn -mt-2 -mr-2 hover:bg-sand">
+                <X size={20} />
+              </button>
+            </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 text-sm">
               <div>
@@ -328,17 +340,19 @@ export const AdminSpecials: React.FC = () => {
       {/* RE-RUN CAMPAIGN MODAL */}
       {rerunModalSpecial && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setRerunModalSpecial(null)}
         >
           <div
             className="w-full max-w-md text-ink p-6 space-y-4 panel"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="display flex items-center gap-2 text-2xl">
-              <RotateCcw size={18} className="text-brand-yellow-deep" />
-              <span>Re-Run Campaign: {rerunModalSpecial.title}</span>
-            </h3>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="display text-2xl">Re-Run Campaign: {rerunModalSpecial.title}</h3>
+              <button type="button" onClick={() => setRerunModalSpecial(null)} aria-label="Close" className="icon-btn -mt-2 -mr-2 hover:bg-sand">
+                <X size={20} />
+              </button>
+            </div>
 
             <p className="text-sm text-ink-soft">
               Set new dates to bring this archived promotional special back to life on the homepage carousel.

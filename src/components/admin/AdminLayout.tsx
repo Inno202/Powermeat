@@ -145,6 +145,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
     }
   };
 
+  const [startNew, setStartNew] = useState<'product' | 'special' | null>(null);
+
   if (!currentUser && !DEMO_MODE) {
     return <SignIn onNavigateHome={onNavigateHome} onOpenAccount={() => (window.location.hash = 'my-orders')} />;
   }
@@ -321,13 +323,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
           <AdminDashboard
             onNavigateTab={setActiveTab}
             onOpenNewOrderModal={() => setIsManualOrderOpen(true)}
-            onOpenNewSpecialModal={() => setActiveTab('specials')}
-            onOpenNewProductModal={() => setActiveTab('products')}
+            onOpenNewSpecialModal={() => {
+              setStartNew('special');
+              setActiveTab('specials');
+            }}
+            onOpenNewProductModal={() => {
+              setStartNew('product');
+              setActiveTab('products');
+            }}
           />
         )}
         {shownTab === 'orders' && <AdminOrders onOpenNewOrderModal={() => setIsManualOrderOpen(true)} />}
-        {shownTab === 'products' && <AdminProducts />}
-        {shownTab === 'specials' && <AdminSpecials />}
+        {shownTab === 'products' && (
+          <AdminProducts startNew={startNew === 'product'} onStarted={() => setStartNew(null)} />
+        )}
+        {shownTab === 'specials' && (
+          <AdminSpecials startNew={startNew === 'special'} onStarted={() => setStartNew(null)} />
+        )}
         {shownTab === 'delivery' && <AdminDeliverySettings />}
         {shownTab === 'customers' && <AdminCustomers />}
         {shownTab === 'reports' && <AdminReports />}
@@ -338,7 +350,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
 
       {isManualOrderOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 flex items-start sm:items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 modal-overlay flex items-start justify-center p-2 sm:p-4"
           onClick={() => setIsManualOrderOpen(false)}
         >
           <div

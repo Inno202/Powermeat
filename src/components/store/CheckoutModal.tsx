@@ -45,12 +45,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('delivery');
   // Only areas we currently deliver to are offered.
-  const areaChoices = deliveryAreas.some(a => a.active) ? deliveryAreas.filter(a => a.active) : deliveryAreas;
+  // The store counter is kept as its own "area" (its own days, no fee). It is only
+  // used for collection; delivery offers the towns we drive to.
+  const isCollectionPoint = (a: { id: string; name: string }) => a.id === 'area-collection' || /collection/i.test(a.name);
+  const activeAreas = deliveryAreas.some(a => a.active) ? deliveryAreas.filter(a => a.active) : deliveryAreas;
+  const areaChoices = activeAreas.filter(a => !isCollectionPoint(a));
+  const collectionPoint = activeAreas.find(isCollectionPoint) ?? {
+    id: 'area-collection',
+    name: 'Collection in store (145 Power Rd)',
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    fee: 0,
+    freeHamperThreshold: true,
+    active: true
+  };
   const [selectedAreaId, setSelectedAreaId] = useState<string>(() => {
     return areaChoices[0]?.id || 'area-welkom';
   });
 
-  const selectedArea = areaChoices.find(a => a.id === selectedAreaId) || areaChoices[0];
+  const selectedArea =
+    deliveryType === 'collection'
+      ? collectionPoint
+      : areaChoices.find(a => a.id === selectedAreaId) || areaChoices[0] || collectionPoint;
 
   // Eligible delivery/collection dates
   const availableDates = getAvailableDates(
@@ -223,25 +238,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setErrors(prev => (prev[key] ? { ...prev, [key]: undefined } : prev));
 
   const choiceClass = (on: boolean) =>
-    `min-h-[56px] p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-colors ${
+    `min-h-[56px] p-3 rounded-2xl border text-left flex items-center gap-2.5 transition-colors ${
       on ? 'border-ink bg-white' : 'border-ink/15 bg-white/60 hover:border-ink/40'
     }`;
   const dateWord = deliveryType === 'delivery' ? 'Delivery' : 'Collection';
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 flex items-start sm:items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 modal-overlay flex items-start justify-center p-2 sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-title"
-        className="sheet-in relative w-full max-w-2xl bg-paper text-ink rounded-3xl overflow-hidden my-2 sm:my-6"
+        className="sheet-in relative w-full max-w-md bg-paper text-ink rounded-3xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 sm:px-7 pt-4 pb-2">
-          <h2 id="checkout-title" className="display text-4xl">
+        <div className="sticky top-0 z-10 bg-paper rounded-t-3xl flex items-center justify-between px-4 sm:px-6 pt-3 pb-2 border-b border-ink/10">
+          <h2 id="checkout-title" className="display text-3xl">
             Checkout
           </h2>
           <button type="button" onClick={onClose} aria-label="Close checkout" className="icon-btn hover:bg-sand">
@@ -249,10 +264,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleStandardSubmit} noValidate className="px-5 sm:px-7 pb-6 space-y-8">
+        <form onSubmit={handleStandardSubmit} noValidate className="px-4 sm:px-6 pt-4 pb-5 space-y-6">
           <fieldset>
             <legend className="field-label">How would you like to get your order?</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 aria-pressed={deliveryType === 'delivery'}
@@ -262,7 +277,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <Truck size={22} className="shrink-0 text-brand-accent-deep" />
                 <span>
                   <span className="block font-semibold">Delivery</span>
-                  <span className="block text-sm text-ink-soft">Welkom and Goldfields towns</span>
+                  <span className="block text-sm text-ink-soft">Goldfields towns</span>
                 </span>
               </button>
               <button
@@ -274,15 +289,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <Store size={22} className="shrink-0 text-brand-accent-deep" />
                 <span>
                   <span className="block font-semibold">Collect in store</span>
-                  <span className="block text-sm text-ink-soft">145 Power Rd, Welkom (free)</span>
+                  <span className="block text-sm text-ink-soft">145 Power Rd, free</span>
                 </span>
               </button>
             </div>
           </fieldset>
 
+          {deliveryType === 'delivery' ? (
           <div>
             <label htmlFor="checkout-area" className="field-label">
-              Your area
+              Your town or suburb
             </label>
             <select
               id="checkout-area"
@@ -292,11 +308,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             >
               {areaChoices.map(area => (
                 <option key={area.id} value={area.id}>
-                  {area.name} · {area.days.join(', ')} ({area.fee === 0 ? 'Free' : formatZAR(area.fee)})
+                  {area.name} ({area.fee === 0 ? 'free delivery' : formatZAR(area.fee)})
                 </option>
               ))}
             </select>
           </div>
+          ) : (
+            <p className="rounded-2xl bg-sand px-4 py-3">
+              Collect from <strong>{settings.address}</strong> during trading hours. There is no delivery fee.
+            </p>
+          )}
 
           <fieldset>
             <legend className="field-label">{dateWord} date</legend>
@@ -305,7 +326,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 No dates are available for this area right now. Choose collection in store or another area.
               </p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {availableDates.slice(0, 6).map((d, i) => (
                   <button
                     key={d.dateStr}
@@ -313,7 +334,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     type="button"
                     aria-pressed={selectedDateStr === d.dateStr}
                     onClick={() => setSelectedDateStr(d.dateStr)}
-                    className={`num min-h-[56px] py-2 px-3 rounded-2xl border text-center transition-colors ${
+                    className={`num min-h-[52px] py-1.5 px-1 rounded-2xl border text-center text-sm transition-colors ${
                       selectedDateStr === d.dateStr
                         ? 'border-ink bg-ink text-white'
                         : 'border-ink/15 bg-white/60 hover:border-ink/40'
@@ -330,7 +351,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </fieldset>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <label htmlFor="checkout-name" className="field-label">
                   Full name
@@ -553,12 +574,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             )}
             <div className="pt-3 border-t border-ink/10 flex justify-between items-baseline">
               <dt className="font-semibold">Total to pay</dt>
-              <dd className="num display text-4xl">{formatZAR(finalTotal)}</dd>
+              <dd className="num display text-3xl">{formatZAR(finalTotal)}</dd>
             </div>
           </dl>
 
           <div className="space-y-2.5">
-            <button type="submit" disabled={!!submitting || cart.length === 0} className="btn btn-lg btn-accent btn-block">
+            <button type="submit" disabled={!!submitting || cart.length === 0} className="btn btn-accent btn-block">
               {submitting === 'web' ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
@@ -575,7 +596,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               type="button"
               onClick={handleWhatsAppOrderSubmit}
               disabled={!!submitting || cart.length === 0}
-              className="btn btn-lg btn-whatsapp btn-block"
+              className="btn btn-whatsapp btn-block"
             >
               {submitting === 'whatsapp' ? <Loader2 size={20} className="animate-spin" /> : <MessageCircle size={20} />}
               <span>{submitting === 'whatsapp' ? 'Opening WhatsApp' : 'Order on WhatsApp instead'}</span>

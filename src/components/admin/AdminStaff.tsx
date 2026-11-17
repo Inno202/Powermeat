@@ -180,7 +180,7 @@ export const AdminStaff: React.FC = () => {
       {/* INVITE MODAL */}
       {isInviteOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/60 backdrop-blur-sm modal-overlay flex items-start justify-center p-4"
           onClick={() => setIsInviteOpen(false)}
         >
           <div
@@ -188,7 +188,6 @@ export const AdminStaff: React.FC = () => {
             onClick={e => e.stopPropagation()}
           >
             <h3 className="display flex items-center gap-2 text-2xl">
-              <UserPlus size={18} className="text-brand-accent-deep" />
               <span>{DEMO_MODE ? "Add staff" : "Invite staff"}</span>
             </h3>
 
