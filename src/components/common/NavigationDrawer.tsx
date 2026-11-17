@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useStore, DEMO_MODE } from '../../services/store';
+import { runningSpecialLabels } from '../../utils/specials';
 import { telLink } from '../../utils/contact';
 
 interface NavigationDrawerProps {
@@ -24,7 +25,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onSelectCategory,
   onNavigatePage
 }) => {
-  const { settings, currentUser, account, logout } = useStore();
+  const { settings, currentUser, account, logout, specials } = useStore();
+  const hasSpecials = runningSpecialLabels(specials).size > 0;
   // One sign-in for everyone; the role on the account decides where it leads.
   const accountTarget = currentUser || DEMO_MODE ? 'admin' : account ? 'my-orders' : 'signin';
   const accountLabel = currentUser
@@ -89,21 +91,31 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               <button type="button" onClick={() => goPage('contact')} className={rowClass}>
                 Contact and location
               </button>
-              <button type="button" onClick={() => goPage(accountTarget)} className={rowClass}>
-                {accountLabel}
-              </button>
               {signedIn && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout();
-                    goPage('store');
-                  }}
-                  className={rowClass}
-                >
-                  Sign out
+                <button type="button" onClick={() => goPage(accountTarget)} className={rowClass}>
+                  {accountLabel}
                 </button>
               )}
+
+              {/* Signing in and out are actions, so they look like buttons, not links. */}
+              <div className="px-3 pt-4">
+                {signedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      goPage('store');
+                    }}
+                    className="btn btn-outline btn-block"
+                  >
+                    Sign out
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => goPage(accountTarget)} className="btn btn-primary btn-block">
+                    Sign in
+                  </button>
+                )}
+              </div>
             </div>
 
             <div>
@@ -111,7 +123,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 Hampers and combos
               </h3>
               <div className="flex flex-col">
-                {HAMPERS.map(cat => (
+                {HAMPERS.filter(cat => cat !== 'Specials' || hasSpecials).map(cat => (
                   <button key={cat} type="button" onClick={() => goCategory(cat)} className={subClass}>
                     {cat}
                   </button>

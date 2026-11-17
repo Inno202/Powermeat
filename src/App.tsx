@@ -319,7 +319,7 @@ function StoreFront() {
                 </div>
 
                 <div className="flex gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-                  {CATALOGUE_FILTERS.map(cat => (
+                  {CATALOGUE_FILTERS.filter(cat => cat !== 'Specials' || onSpecial.size > 0).map(cat => (
                     <button
                       key={cat}
                       type="button"

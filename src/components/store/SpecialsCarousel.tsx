@@ -17,6 +17,9 @@ export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProd
   const labels = runningSpecialLabels(specials);
   const activeSpecialProducts = products.filter(p => p.stockStatus !== 'hidden' && labels.has(p.id));
 
+  // The section only appears while at least one special is running.
+  if (activeSpecialProducts.length === 0) return null;
+
   return (
     <section className="pt-16 md:pt-20" aria-labelledby="specials-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -24,12 +27,7 @@ export const SpecialsCarousel: React.FC<SpecialsCarouselProps> = ({ onSelectProd
           This week's <span className="text-brand-accent">specials</span>
         </h2>
 
-        {activeSpecialProducts.length === 0 ? (
-          <div className="panel p-8 text-center">
-            <p className="display text-2xl">No specials running right now</p>
-            <p className="text-ink-soft mt-2">Check back at month end for the next butchery deals.</p>
-          </div>
-        ) : (
+        {(
           <div className="flex gap-4 overflow-x-auto pb-4 snap-x no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {activeSpecialProducts.map(product => {
               const badgeLabel = labels.get(product.id) || 'Special';
