@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { RotateCcw, Search } from 'lucide-react';
-import { useStore } from '../../services/store';
+import React, { useMemo, useState } from 'react';
+import { RotateCcw, MessageCircle, LogIn } from 'lucide-react';
+import { useStore, DEMO_MODE } from '../../services/store';
 import { Order } from '../../types';
-import { getMyOrderIds } from '../../utils/myOrders';
+import { getMyOrders } from '../../utils/myOrders';
+import { whatsappLink } from '../../utils/contact';
 import { ORDER_STATUS_LABEL, statusBadgeClass, formatDate } from '../../utils/labels';
 import { PageHero, HERO_PHOTOS } from '../ui/PageHero';
 import { OrderSummary } from './OrderSummary';
@@ -12,107 +13,107 @@ interface MyOrdersViewProps {
   onNavigateHome: () => void;
 }
 
-const digits = (s: string) => s.replace(/[^0-9]/g, '').replace(/^27/, '0');
-
 export const MyOrdersView: React.FC<MyOrdersViewProps> = ({ onReorder, onNavigateHome }) => {
-  const { orders } = useStore();
-  const [orderNumber, setOrderNumber] = useState('');
-  const [cell, setCell] = useState('');
-  const [lookup, setLookup] = useState<{ id: string; cell: string } | null>(null);
+  const { orders, settings, account, currentUser, signInWithGoogle, logout } = useStore();
+  const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
-  // A customer sees the orders placed from this browser, plus any order they can
-  // identify with both its number and the cell number it was placed with.
-  const mine = new Set(getMyOrderIds());
-  const visible = orders.filter(
-    o =>
-      mine.has(o.id) ||
-      (lookup !== null && o.id.toUpperCase() === lookup.id && digits(o.customerCell) === lookup.cell)
-  );
-  const lookupMissed = lookup !== null && !visible.some(o => o.id.toUpperCase() === lookup.id);
+  // Orders from this device, with the live version (status, weighed totals) when it
+  // can be read: for a signed-in customer, the orders placed with their own email.
+  const visible = useMemo(() => {
+    const live = new Map(orders.map(o => [o.id, o]));
+    const mine = getMyOrders().map(o => ({ order: live.get(o.id) ?? o, isLive: live.has(o.id) }));
+    const signedInCustomer = !DEMO_MODE && account && !currentUser;
+    if (signedInCustomer) {
+      for (const o of orders) if (!mine.some(m => m.order.id === o.id)) mine.push({ order: o, isLive: true });
+    }
+    return mine.sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt));
+  }, [orders, account, currentUser]);
 
-  const handleLookup = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLookup({ id: orderNumber.trim().toUpperCase(), cell: digits(cell) });
+  const handleSignIn = async () => {
+    setSigningIn(true);
+    setSignInError(await signInWithGoogle());
+    setSigningIn(false);
   };
+
+  const askOnWhatsApp = (id: string) =>
+    whatsappLink(settings.whatsapp, `Hello Powermeat! Please give me an update on order ${id}.`);
 
   return (
     <>
       <PageHero title="Track my order" image={HERO_PHOTOS[1]} />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-16">
-        <form onSubmit={handleLookup} className="panel p-5 sm:p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="track-number" className="field-label">
-                Order number
-              </label>
-              <input
-                id="track-number"
-                type="text"
-                required
-                maxLength={12}
-                placeholder="PM-000101"
-                value={orderNumber}
-                onChange={e => setOrderNumber(e.target.value)}
-                className="field num"
-              />
-            </div>
-            <div>
-              <label htmlFor="track-cell" className="field-label">
-                Cell number used on the order
-              </label>
-              <input
-                id="track-cell"
-                type="tel"
-                inputMode="tel"
-                required
-                maxLength={30}
-                placeholder="082 123 4567"
-                value={cell}
-                onChange={e => setCell(e.target.value)}
-                className="field num"
-              />
-            </div>
+        {!DEMO_MODE && (
+          <div className="panel p-5 sm:p-8">
+            {account && !currentUser ? (
+              <>
+                <h2 className="display text-3xl">Signed in as {account.email}</h2>
+                <p className="mt-2 text-ink-soft">
+                  You see the live status of every order placed with this email address.
+                </p>
+                <button type="button" onClick={logout} className="btn btn-outline mt-5">
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="display text-3xl">See the live status of your orders</h2>
+                <p className="mt-2 text-ink-soft">
+                  Sign in with the Google account for the email you gave at checkout.
+                </p>
+                <button type="button" onClick={handleSignIn} disabled={signingIn} className="btn btn-primary mt-5">
+                  <LogIn size={18} />
+                  <span>{signingIn ? 'Opening Google' : 'Sign in with Google'}</span>
+                </button>
+                {signInError && (
+                  <p className="field-error" role="alert">
+                    {signInError}
+                  </p>
+                )}
+              </>
+            )}
           </div>
-          <button type="submit" className="btn btn-primary mt-5">
-            <Search size={18} />
-            <span>Find my order</span>
-          </button>
-          {lookupMissed && (
-            <p className="field-error" role="alert">
-              We could not find an order with that number and cell number. Check both and try again.
-            </p>
-          )}
-        </form>
+        )}
 
         {visible.length === 0 ? (
-          !lookupMissed && (
-            <div className="mt-10">
-              <h2 className="display text-3xl">No orders from this device yet</h2>
-              <p className="text-ink-soft mt-2">
-                Orders you place here appear on this page. To find an earlier order, enter its number and your cell
-                number above.
-              </p>
-              <button type="button" onClick={onNavigateHome} className="btn btn-accent mt-5">
-                Browse the catalogue
-              </button>
-            </div>
-          )
+          <div className="mt-10">
+            <h2 className="display text-3xl">No orders yet</h2>
+            <p className="text-ink-soft mt-2">
+              Orders you place on this phone or computer appear here.
+              {!DEMO_MODE && ' Orders placed with your email also appear once you sign in.'}
+            </p>
+            <button type="button" onClick={onNavigateHome} className="btn btn-accent mt-5">
+              Browse the catalogue
+            </button>
+          </div>
         ) : (
           <ul className="mt-10 space-y-6">
-            {visible.map(order => (
+            {visible.map(({ order, isLive }) => (
               <li key={order.id} className="panel p-5 sm:p-8">
                 <div className="flex items-center flex-wrap gap-3 mb-5">
                   <h2 className="num display text-3xl">{order.id}</h2>
-                  <span className={`badge ${statusBadgeClass(order.orderStatus)}`}>
-                    {ORDER_STATUS_LABEL[order.orderStatus]}
-                  </span>
+                  {isLive || DEMO_MODE ? (
+                    <span className={`badge ${statusBadgeClass(order.orderStatus)}`}>
+                      {ORDER_STATUS_LABEL[order.orderStatus]}
+                    </span>
+                  ) : (
+                    <span className="badge bg-sand text-ink">Sent to the butchery</span>
+                  )}
                   <span className="num text-sm text-ink-soft sm:ml-auto">Placed {formatDate(order.createdAt)}</span>
                 </div>
                 <OrderSummary order={order} />
-                <button type="button" onClick={() => onReorder(order)} className="btn btn-outline mt-5">
-                  <RotateCcw size={18} />
-                  <span>Order these again</span>
-                </button>
+                <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                  <button type="button" onClick={() => onReorder(order)} className="btn btn-outline">
+                    <RotateCcw size={18} />
+                    <span>Order these again</span>
+                  </button>
+                  {!isLive && !DEMO_MODE && (
+                    <a href={askOnWhatsApp(order.id)} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+                      <MessageCircle size={18} />
+                      <span>Ask for an update</span>
+                    </a>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

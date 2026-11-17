@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Users, UserPlus, Shield, UserX, UserCheck, KeyRound } from 'lucide-react';
-import { useStore } from '../../services/store';
+import { confirmAction } from '../ui/feedback';
+import { useStore, DEMO_MODE } from '../../services/store';
 import { Role, UserProfile } from '../../types';
 
 export const AdminStaff: React.FC = () => {
-  const { users, addStaff, updateStaffRole, toggleStaffStatus, currentUser } = useStore();
+  const { users, staffInvites, addStaff, cancelInvite, updateStaffRole, toggleStaffStatus, currentUser } = useStore();
 
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [formName, setFormName] = useState('');
@@ -50,7 +51,7 @@ export const AdminStaff: React.FC = () => {
             className="btn btn-sm btn-accent"
           >
             <UserPlus size={15} />
-            <span>Add Staff Account</span>
+            <span>{DEMO_MODE ? "Add staff" : "Invite staff"}</span>
           </button>
         )}
       </div>
@@ -73,7 +74,6 @@ export const AdminStaff: React.FC = () => {
               <tr key={u.id} className="hover:bg-sand/40 transition">
                 <td className="py-3.5 px-4">
                   <strong className="text-ink text-sm block">{u.name}</strong>
-                  <span className="text-ink-soft num text-sm">{u.id}</span>
                 </td>
 
                 <td className="py-3.5 px-4">
@@ -136,6 +136,47 @@ export const AdminStaff: React.FC = () => {
         </table>
       </div>
 
+      {!DEMO_MODE && isOwner && (
+        <section className="panel p-5" aria-labelledby="invites-title">
+          <h3 id="invites-title" className="display text-2xl">
+            Waiting to sign in{staffInvites.length > 0 ? ` (${staffInvites.length})` : ''}
+          </h3>
+          {staffInvites.length === 0 ? (
+            <p className="mt-2 text-ink-soft">
+              Nobody is waiting. Invite a person, then they sign in with Google or create a password using the same email.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-ink/10">
+              {staffInvites.map(inv => (
+                <li key={inv.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
+                  <span>
+                    <span className="font-semibold block">{inv.name}</span>
+                    <span className="text-sm text-ink-soft">
+                      {inv.email} · {inv.role}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const ok = await confirmAction({
+                        title: `Cancel the invitation for ${inv.name}?`,
+                        message: `${inv.email} will not be able to join the staff unless you invite them again.`,
+                        confirmLabel: 'Cancel invitation',
+                        tone: 'danger'
+                      });
+                      if (ok) cancelInvite(inv.id);
+                    }}
+                    className="btn btn-sm btn-danger"
+                  >
+                    Cancel invitation
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* INVITE MODAL */}
       {isInviteOpen && (
         <div
@@ -148,7 +189,7 @@ export const AdminStaff: React.FC = () => {
           >
             <h3 className="display flex items-center gap-2 text-2xl">
               <UserPlus size={18} className="text-brand-accent-deep" />
-              <span>Add Staff Account</span>
+              <span>{DEMO_MODE ? "Add staff" : "Invite staff"}</span>
             </h3>
 
             <form onSubmit={handleInviteSubmit} className="space-y-4 text-sm">

@@ -31,6 +31,8 @@ import { AdminActivityLogs } from './AdminActivityLogs';
 import { formatZAR, calculateDeliveryFee } from '../../utils/pricing';
 import { LIMITS, cleanText } from '../../utils/validate';
 import { DEMO_MODE } from '../../services/store';
+import { StaffSignIn } from './StaffSignIn';
+import { toast } from '../ui/feedback';
 
 const ROLES: Array<{ id: Role; label: string; does: string }> = [
   { id: 'owner', label: 'Owner', does: 'Full access' },
@@ -60,6 +62,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
 
   // Manual Order Modal (+ New Order)
   const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [manualCustomerName, setManualCustomerName] = useState('');
   const [manualCustomerCell, setManualCustomerCell] = useState('');
   const [manualDeliveryType, setManualDeliveryType] = useState<'delivery' | 'collection'>('collection');
@@ -75,7 +78,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
   const isDriver = currentRole === 'driver';
 
   // Manual order submission
-  const handleCreateManualOrder = (e: React.FormEvent) => {
+  const handleCreateManualOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     const prod = products.find(p => p.id === manualSelectedProductId) || products[0];
     const unitPrice = prod.price;
@@ -87,7 +90,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
     ]);
     const total = Math.round((lineTotal + deliveryFee + 0.0001) * 100) / 100;
 
-    createOrder({
+    if (savingOrder) return;
+    setSavingOrder(true);
+    try {
+      await createOrder({
       customerName: cleanText(manualCustomerName, LIMITS.name) || 'Counter Customer',
       customerCell: cleanText(manualCustomerCell, LIMITS.cell) || '0573963189',
       deliveryType: manualDeliveryType,
@@ -114,10 +120,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
       source: manualSource,
       notes: cleanText(manualNotes, LIMITS.notes) || undefined,
       marketingOptIn: false
-    });
-
-    setIsManualOrderOpen(false);
-    setActiveTab('orders');
+      });
+      setIsManualOrderOpen(false);
+      setActiveTab('orders');
+      toast('Order saved');
+    } catch (err) {
+      console.error(err);
+      toast('The order was not saved. Check your connection and try again.', 'error');
+    } finally {
+      setSavingOrder(false);
+    }
   };
 
   // Sign-in handler
@@ -132,6 +144,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
       setLoginError('We could not sign you in with that email.');
     }
   };
+
+  if (!currentUser && !DEMO_MODE) {
+    return <StaffSignIn onNavigateHome={onNavigateHome} />;
+  }
 
   if (!currentUser) {
     return (
@@ -422,8 +438,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onNavigateHome }) => {
                 <button type="button" onClick={() => setIsManualOrderOpen(false)} className="btn btn-outline">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-accent">
-                  Save order
+                <button type="submit" disabled={savingOrder} className="btn btn-accent">
+                  {savingOrder ? 'Saving' : 'Save order'}
                 </button>
               </div>
             </form>

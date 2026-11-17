@@ -9,12 +9,14 @@ import {
   MessageCircle,
   ArrowRight,
   Upload,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { useStore } from '../../services/store';
 import { formatZAR, calculateDeliveryFee } from '../../utils/pricing';
 import { getAvailableDates, createWhatsAppOrderLink } from '../../utils/delivery';
 import { Order, OrderItem, PaymentMethod, DeliveryType } from '../../types';
+import { toast } from '../ui/feedback';
 import { LIMITS, cleanText, isValidCell, isValidEmail, uploadProblem } from '../../utils/validate';
 
 type FieldErrors = Partial<Record<'name' | 'cell' | 'email' | 'address' | 'date' | 'pop', string>>;
@@ -78,7 +80,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [popFileUrl, setPopFileUrl] = useState<string>('');
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<false | 'web' | 'whatsapp'>(false);
 
   const popUploadInputId = useId();
 
@@ -145,7 +147,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const buildOrder = (source: 'web' | 'whatsapp') => ({
     customerName: cleanText(customerName, LIMITS.name),
     customerCell: cleanText(customerCell, LIMITS.cell),
-    customerEmail: customerEmail.trim() || undefined,
+    customerEmail: customerEmail.trim().toLowerCase() || undefined,
     deliveryType,
     area: selectedArea.name,
     deliveryAddress: deliveryType === 'delivery' ? cleanText(deliveryAddress, LIMITS.address) : undefined,
@@ -163,41 +165,57 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     popUrl: popFileUrl || undefined
   });
 
-  const handleStandardSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const placeOrder = async (source: 'web' | 'whatsapp') => {
     if (submitting || cart.length === 0 || !validateForm()) return;
-    setSubmitting(true);
-    const newOrder = createOrder(buildOrder('web'));
-    clearCart();
-    onOrderComplete(newOrder);
-    setSubmitting(false);
+    setSubmitting(source);
+    const data = buildOrder(source);
+    // Opened straight away so the browser does not block it as a pop-up.
+    const waWindow = source === 'whatsapp' ? window.open('', '_blank') : null;
+    try {
+      const newOrder = await createOrder(data);
+      if (source === 'whatsapp') {
+        const waLink = createWhatsAppOrderLink(settings.whatsapp, {
+          orderNumber: newOrder.id,
+          customerName: data.customerName,
+          customerCell: data.customerCell,
+          deliveryType,
+          area: data.area,
+          deliveryAddress: data.deliveryAddress,
+          deliveryDate: data.deliveryDate,
+          items: data.items,
+          subtotal: data.subtotal,
+          deliveryFee,
+          total: finalTotal,
+          paymentMethod,
+          notes: data.notes
+        });
+        if (waWindow) {
+          waWindow.opener = null;
+          waWindow.location.href = waLink;
+        } else {
+          window.open(waLink, '_blank', 'noopener,noreferrer');
+        }
+      }
+      clearCart();
+      onOrderComplete(newOrder);
+    } catch (e) {
+      console.error(e);
+      waWindow?.close();
+      toast(
+        'Your order was not sent. Check your connection and try again, or order on WhatsApp on 072 477 9314.',
+        'error'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleWhatsAppOrderSubmit = () => {
-    if (submitting || cart.length === 0 || !validateForm()) return;
-    setSubmitting(true);
-    const data = buildOrder('whatsapp');
-    const newOrder = createOrder(data);
-    const waLink = createWhatsAppOrderLink(settings.whatsapp, {
-      orderNumber: newOrder.id,
-      customerName: data.customerName,
-      customerCell: data.customerCell,
-      deliveryType,
-      area: data.area,
-      deliveryAddress: data.deliveryAddress,
-      deliveryDate: data.deliveryDate,
-      items: data.items,
-      subtotal: data.subtotal,
-      deliveryFee,
-      total: finalTotal,
-      paymentMethod,
-      notes: data.notes
-    });
-    clearCart();
-    window.open(waLink, '_blank', 'noopener,noreferrer');
-    onOrderComplete(newOrder);
-    setSubmitting(false);
+  const handleStandardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    placeOrder('web');
   };
+
+  const handleWhatsAppOrderSubmit = () => placeOrder('whatsapp');
 
   const clearError = (key: keyof FieldErrors) =>
     setErrors(prev => (prev[key] ? { ...prev, [key]: undefined } : prev));
@@ -538,18 +556,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </dl>
 
           <div className="space-y-2.5">
-            <button type="submit" disabled={submitting || cart.length === 0} className="btn btn-lg btn-accent btn-block">
-              <span className="num">Place order · {formatZAR(finalTotal)}</span>
-              <ArrowRight size={18} className="btn-arrow" />
+            <button type="submit" disabled={!!submitting || cart.length === 0} className="btn btn-lg btn-accent btn-block">
+              {submitting === 'web' ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Placing your order</span>
+                </>
+              ) : (
+                <>
+                  <span className="num">Place order · {formatZAR(finalTotal)}</span>
+                  <ArrowRight size={18} className="btn-arrow" />
+                </>
+              )}
             </button>
             <button
               type="button"
               onClick={handleWhatsAppOrderSubmit}
-              disabled={submitting || cart.length === 0}
+              disabled={!!submitting || cart.length === 0}
               className="btn btn-lg btn-whatsapp btn-block"
             >
-              <MessageCircle size={20} />
-              <span>Order on WhatsApp instead</span>
+              {submitting === 'whatsapp' ? <Loader2 size={20} className="animate-spin" /> : <MessageCircle size={20} />}
+              <span>{submitting === 'whatsapp' ? 'Opening WhatsApp' : 'Order on WhatsApp instead'}</span>
             </button>
           </div>
         </form>

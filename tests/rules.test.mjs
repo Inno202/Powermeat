@@ -3,7 +3,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch } from 'firebase/firestore';
 
 let env;
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -161,8 +161,26 @@ test('blocked: a customer reading someone else\'s order', async () => {
 test('blocked: a customer with an unverified email claiming an order', async () => {
   await assertFails(getDoc(doc(customer('c2', 'thabo@example.com', false), 'orders/PM-000101')));
 });
-test('staff can list orders', async () => {
+test('counter staff can list all orders', async () => {
   await assertSucceeds(getDocs(collection(staff('counter1'), 'orders')));
+});
+test('blocked: a driver listing every order', async () => {
+  await assertFails(getDocs(collection(staff('driverA'), 'orders')));
+});
+test('a driver can list the orders assigned to them', async () => {
+  await assertSucceeds(getDocs(query(collection(staff('driverA'), 'orders'), where('assignedDriverId', '==', 'driverA'))));
+});
+test('blocked: a driver reading an order assigned to someone else', async () => {
+  await assertFails(getDoc(doc(staff('driverB'), 'orders/PM-000102')));
+});
+test('a signed-in customer can list the orders placed with their email', async () => {
+  await assertSucceeds(getDocs(query(collection(customer('c1', 'thabo@example.com'), 'orders'), where('customerEmail', '==', 'thabo@example.com'))));
+});
+test('blocked: a customer listing orders for another email', async () => {
+  await assertFails(getDocs(query(collection(customer('c1', 'thabo@example.com'), 'orders'), where('customerEmail', '==', 'other@example.com'))));
+});
+test('blocked: an order email in capitals (it must match the sign-in email)', async () => {
+  await assertFails(setDoc(doc(guest(), 'orders/PM-000200'), newOrder({ customerEmail: 'Thabo@Example.com' })));
 });
 
 // ----- Orders: processing -----
@@ -247,4 +265,48 @@ test('blocked: counter staff changing a delivery fee', async () => {
 test('blocked: any collection the rules do not name', async () => {
   await assertFails(setDoc(doc(staff('owner1'), 'anything_else/x'), { a: 1 }));
   await assertFails(getDoc(doc(guest(), 'anything_else/x')));
+});
+
+// ----- Staff invitations -----
+const invite = (over = {}) => ({ id: 'newbie@example.com', email: 'newbie@example.com', name: 'New Person', role: 'counter', invitedBy: 'owner1', createdAt: '2026-11-17T08:00:00Z', ...over });
+const claim = (over = {}) => ({ id: 'newbieUid', name: 'New Person', email: 'newbie@example.com', role: 'counter', active: true, createdAt: '2026-11-17T09:00:00Z', ...over });
+const seedInvite = () => env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'staff_invites/newbie@example.com'), invite()));
+
+test('the Owner can invite a staff member', async () => {
+  await assertSucceeds(setDoc(doc(staff('owner1'), 'staff_invites/newbie@example.com'), invite()));
+});
+test('blocked: a manager inviting staff', async () => {
+  await assertFails(setDoc(doc(staff('manager1'), 'staff_invites/newbie@example.com'), invite({ invitedBy: 'manager1' })));
+});
+test('an invited person joins with the invited role, and the invitation is used up', async () => {
+  await seedInvite();
+  const db = customer('newbieUid', 'newbie@example.com');
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'staff/newbieUid'), claim());
+  batch.delete(doc(db, 'staff_invites/newbie@example.com'));
+  await assertSucceeds(batch.commit());
+});
+test('blocked: an invited person giving themselves a higher role', async () => {
+  await seedInvite();
+  await assertFails(setDoc(doc(customer('newbieUid', 'newbie@example.com'), 'staff/newbieUid'), claim({ role: 'owner' })));
+});
+test('blocked: joining without an invitation', async () => {
+  await assertFails(setDoc(doc(customer('strangerUid', 'stranger@example.com'), 'staff/strangerUid'), claim({ id: 'strangerUid', email: 'stranger@example.com' })));
+});
+test('blocked: joining with an unverified email', async () => {
+  await seedInvite();
+  await assertFails(setDoc(doc(customer('newbieUid', 'newbie@example.com', false), 'staff/newbieUid'), claim()));
+});
+test('blocked: using someone else\'s invitation', async () => {
+  await seedInvite();
+  await assertFails(setDoc(doc(customer('otherUid', 'other@example.com'), 'staff/otherUid'), claim({ id: 'otherUid' })));
+});
+test('blocked: a deactivated person re-joining with an old invitation', async () => {
+  await seedInvite();
+  await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'staff/newbieUid'), claim({ active: false })));
+  await assertFails(setDoc(doc(customer('newbieUid', 'newbie@example.com'), 'staff/newbieUid'), claim()));
+});
+test('blocked: a customer reading invitations', async () => {
+  await seedInvite();
+  await assertFails(getDocs(collection(customer('c1', 'thabo@example.com'), 'staff_invites')));
 });

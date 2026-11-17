@@ -117,7 +117,9 @@ service cloud.firestore {
         incoming().customerName is string && incoming().customerName.size() >= 2 &&
           incoming().customerName.size() <= 120 &&
         incoming().customerCell is string && incoming().customerCell.matches('^[0-9+ ]{9,30}$') &&
-        optionalString(incoming(), 'customerEmail', 254) &&
+        (!('customerEmail' in incoming()) ||
+          (incoming().customerEmail is string && incoming().customerEmail.size() <= 254 &&
+           incoming().customerEmail == incoming().customerEmail.lower())) &&
         incoming().deliveryType in ['delivery', 'collection'] &&
         incoming().area is string && incoming().area.size() <= 120 &&
         optionalString(incoming(), 'deliveryAddress', 300) &&
@@ -144,11 +146,12 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow create: if isValidId(orderId) && (validNewOrder() || isCounter());
 
-      // Staff see orders; a customer sees only orders placed with their own verified email.
-      allow get: if isStaff() ||
+      // Counter staff and up see all orders. A driver sees only orders assigned to them.
+      // A customer sees only orders placed with their own verified email address.
+      allow get, list: if isCounter() ||
+        (isDriver() && existing().assignedDriverId == request.auth.uid) ||
         (isSignedIn() && request.auth.token.email_verified == true &&
-         existing().customerEmail == request.auth.token.email);
-      allow list: if isStaff();
+         existing().customerEmail == request.auth.token.email.lower());
 
       // Counter, manager, owner: process the order, but never rewrite who it belongs to.
       // Finished or cancelled orders are locked for everyone except the Owner.
@@ -170,15 +173,55 @@ service cloud.firestore {
     }
 
     // ---------- 4. Staff ----------
+    function inviteFor(email) {
+      return /databases/$(database)/documents/staff_invites/$(email);
+    }
+
+    function validStaff() {
+      return incoming().keys().hasOnly(['id', 'name', 'email', 'phone', 'role', 'active', 'createdAt']) &&
+        incoming().role in ['owner', 'manager', 'counter', 'driver'] &&
+        incoming().active is bool &&
+        incoming().name is string && incoming().name.size() <= 120 &&
+        optionalString(incoming(), 'email', 254) &&
+        optionalString(incoming(), 'phone', 30);
+    }
+
+    // A person the Owner invited may create their own staff record once, with exactly
+    // the invited role, using the verified email the invitation was sent to.
+    function claimsOwnInvite(userId) {
+      return isSignedIn() && request.auth.uid == userId &&
+        request.auth.token.email_verified == true &&
+        exists(inviteFor(request.auth.token.email.lower())) &&
+        incoming().role == get(inviteFor(request.auth.token.email.lower())).data.role &&
+        incoming().email == request.auth.token.email.lower() &&
+        incoming().active == true;
+    }
+
     match /staff/{userId} {
       // Staff see the team; anyone else can only check their own record.
       allow read: if isStaff() || (isSignedIn() && request.auth.uid == userId);
-      // Only the Owner creates accounts, changes roles or (de)activates, after a recent sign-in.
-      allow create, update: if isOwner() && recentSignIn() && isValidId(userId) &&
-        incoming().role in ['owner', 'manager', 'counter', 'driver'] &&
-        incoming().active is bool &&
-        incoming().name is string && incoming().name.size() <= 120;
+      // Only the Owner changes roles or (de)activates, after a recent sign-in.
+      allow create: if isValidId(userId) && validStaff() &&
+        ((isOwner() && recentSignIn()) || claimsOwnInvite(userId));
+      allow update: if isOwner() && recentSignIn() && isValidId(userId) && validStaff();
       allow delete: if isOwner() && recentSignIn() && isValidId(userId) && request.auth.uid != userId;
+    }
+
+    match /staff_invites/{email} {
+      // The Owner manages invitations; the invited person can read and use up their own.
+      allow read: if isOwner() ||
+        (isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email.lower() == email);
+      allow create: if isOwner() && recentSignIn() &&
+        email.size() <= 254 && email == email.lower() &&
+        incoming().keys().hasOnly(['id', 'email', 'name', 'phone', 'role', 'invitedBy', 'createdAt']) &&
+        incoming().email == email &&
+        incoming().role in ['owner', 'manager', 'counter', 'driver'] &&
+        incoming().name is string && incoming().name.size() <= 120 &&
+        incoming().invitedBy == request.auth.uid;
+      allow update: if false;
+      allow delete: if isOwner() ||
+        (isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email.lower() == email &&
+         existsAfter(/databases/$(database)/documents/staff/$(request.auth.uid)));
     }
 
     // ---------- 5. Activity log (append-only) ----------

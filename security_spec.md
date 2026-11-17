@@ -16,7 +16,7 @@
 
 ## 2. Tested, not just written
 
-`tests/rules.test.mjs` runs 53 checks against the real rules in the Firestore emulator (`npm run test:rules`). Every payload below has a test, plus: orders that arrive already paid or confirmed, totals that do not add up, negative delivery fees, web pages disguised as proof of payment, `javascript:` product photos, customers with unverified emails, log entries written under someone else's name, deletes and role changes with a sign-in older than 8 hours, and collections the rules do not name.
+`tests/rules.test.mjs` runs 68 checks against the real rules in the Firestore emulator (`npm run test:rules`). Every payload below has a test, plus: orders that arrive already paid or confirmed, totals that do not add up, negative delivery fees, web pages disguised as proof of payment, `javascript:` product photos, customers with unverified emails, log entries written under someone else's name, deletes and role changes with a sign-in older than 8 hours, and collections the rules do not name, drivers reading other drivers' deliveries, and staff invitations (wrong role, wrong email, unverified email, re-joining after being switched off).
 
 **Known limit:** rules cannot loop over an order's item list, so they check that the total equals subtotal plus delivery fee, but not each line price against the catalogue. Before taking online card payments, create orders through a server function that re-prices the cart from `/products`.
 

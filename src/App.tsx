@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { StoreProvider, useStore } from './services/store';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -20,12 +20,15 @@ import {
   ContactPage,
   PrivacyPolicyPage
 } from './components/store/InfoPages';
-import { AdminLayout } from './components/admin/AdminLayout';
+// The staff area is loaded only when someone opens it, so shoppers download less.
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 import { Product, Order } from './types';
 import { MapPin, Phone, MessageCircle, Clock, Search } from 'lucide-react';
 import { FeedbackHost } from './components/ui/feedback';
 import { whatsappLink, telLink } from './utils/contact';
 import { rememberMyOrder } from './utils/myOrders';
+
+const KNOWN_PAGES = ['admin', 'my-orders', 'delivery_areas', 'wholesale', 'contact', 'privacy'];
 
 const CATALOGUE_FILTERS = [
   'All',
@@ -46,7 +49,8 @@ function StoreFront() {
     isNavDrawerOpen,
     setIsNavDrawerOpen,
     addToCart,
-    settings
+    settings,
+    catalogueReady
   } = useStore();
 
   const [activePage, setActivePage] = useState<string>('store');
@@ -56,33 +60,27 @@ function StoreFront() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
 
-  // Sync with browser URL /admin hash or path
+  // Pages are kept in the address after "#", so links and refresh work on any host,
+  // including a GitHub Pages sub-folder. Example: .../Powermeat/#admin
   useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      if (path.includes('/admin') || hash.includes('admin')) {
-        setActivePage('admin');
-      }
+    const syncFromAddress = () => {
+      const page = window.location.hash.replace(/^#\/?/, '');
+      setConfirmedOrder(null);
+      setActivePage(KNOWN_PAGES.includes(page) ? page : 'store');
     };
-    handlePopState();
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('hashchange', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('hashchange', handlePopState);
-    };
+    syncFromAddress();
+    window.addEventListener('hashchange', syncFromAddress);
+    return () => window.removeEventListener('hashchange', syncFromAddress);
   }, []);
 
   const navigateTo = (page: string) => {
     setConfirmedOrder(null);
     setActivePage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (page === 'admin') {
-      window.history.pushState(null, '', '/admin');
-    } else {
-      window.history.pushState(null, '', '/');
+    const target = page === 'store' ? window.location.pathname : `#${page}`;
+    if (page === 'store' ? window.location.hash !== '' : window.location.hash !== `#${page}`) {
+      window.history.pushState(null, '', target);
     }
+    window.scrollTo({ top: 0 });
   };
 
   const handleSelectCategory = (cat: string) => {
@@ -118,7 +116,17 @@ function StoreFront() {
 
   // If on admin back-office page
   if (activePage === 'admin') {
-    return <AdminLayout onNavigateHome={() => navigateTo('store')} />;
+    return (
+      <Suspense
+        fallback={
+          <p className="min-h-screen flex items-center justify-center text-ink-soft" role="status">
+            Opening the staff area
+          </p>
+        }
+      >
+        <AdminLayout onNavigateHome={() => navigateTo('store')} />
+      </Suspense>
+    );
   }
 
   // Filter products for the store catalog
@@ -262,7 +270,27 @@ function StoreFront() {
                   ))}
                 </div>
 
-                {filteredProducts.length === 0 ? (
+                {!catalogueReady ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6" aria-busy="true" aria-label="Loading the catalogue">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="panel overflow-hidden">
+                        <div className="aspect-[4/3] bg-sand animate-pulse" />
+                        <div className="p-4 space-y-2.5">
+                          <div className="h-3 w-1/3 rounded-full bg-sand animate-pulse" />
+                          <div className="h-5 w-2/3 rounded-full bg-sand animate-pulse" />
+                          <div className="h-11 rounded-full bg-sand animate-pulse mt-4" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="panel p-10 text-center">
+                    <h3 className="display text-3xl">The online catalogue is being set up</h3>
+                    <p className="text-ink-soft mt-2">
+                      Order on WhatsApp in the meantime, or call the butchery on {settings.phone1}.
+                    </p>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
                   <div className="panel p-10 text-center">
                     <h3 className="display text-3xl">Nothing matches that search</h3>
                     <p className="text-ink-soft mt-2">Try another category or clear the search.</p>
@@ -372,7 +400,7 @@ function StoreFront() {
         onClose={() => setIsCheckoutOpen(false)}
         onOrderComplete={newOrder => {
           setIsCheckoutOpen(false);
-          rememberMyOrder(newOrder.id);
+          rememberMyOrder(newOrder);
           setConfirmedOrder(newOrder);
           window.scrollTo({ top: 0 });
         }}

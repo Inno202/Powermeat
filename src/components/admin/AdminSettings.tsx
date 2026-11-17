@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Settings, Save, CreditCard, Store, Bell, CheckCircle2 } from 'lucide-react';
 import { confirmAction, toast } from '../ui/feedback';
-import { useStore } from '../../services/store';
+import { useStore, DEMO_MODE } from '../../services/store';
+import { SEED_PRODUCTS } from '../../data/seedData';
 
 export const AdminSettings: React.FC = () => {
-  const { settings, updateSettings, currentUser, resetAllData } = useStore();
+  const { settings, updateSettings, currentUser, resetAllData, loadStartingCatalogue, products } = useStore();
+  const [loadingCatalogue, setLoadingCatalogue] = useState(false);
 
   const [businessName, setBusinessName] = useState(settings.businessName);
   const [tagline, setTagline] = useState(settings.tagline);
@@ -202,24 +204,46 @@ export const AdminSettings: React.FC = () => {
         </div>
 
         <div className="flex justify-between items-center pt-4 border-t border-ink/10">
-          <button
-            type="button"
-            onClick={async () => {
-              const ok = await confirmAction({
-                title: 'Reset all demo data?',
-                message: 'Products, orders and demo staff go back to the starting examples. This cannot be undone.',
-                confirmLabel: 'Reset demo data',
-                tone: 'danger'
-              });
-              if (ok) {
-                resetAllData();
-                toast('Demo data reset');
-              }
-            }}
-            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 text-ink-soft hover:text-red-800 text-sm underline cursor-pointer"
-          >
-            Reset Demo Data to Seed
-          </button>
+          {DEMO_MODE ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const ok = await confirmAction({
+                  title: 'Reset all demo data?',
+                  message: 'Products, orders and demo staff go back to the starting examples. This cannot be undone.',
+                  confirmLabel: 'Reset demo data',
+                  tone: 'danger'
+                });
+                if (ok) {
+                  resetAllData();
+                  toast('Demo data reset');
+                }
+              }}
+              className="btn btn-sm btn-danger"
+            >
+              Reset demo data
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={loadingCatalogue}
+              onClick={async () => {
+                const ok = await confirmAction({
+                  title: 'Load the starting catalogue?',
+                  message: `This saves the ${SEED_PRODUCTS.length} starting products, the specials, the delivery areas and these store details to the live shop. Products with the same codes are replaced with the starting versions.`,
+                  confirmLabel: 'Load catalogue',
+                  tone: products.length > 0 ? 'danger' : 'default'
+                });
+                if (!ok) return;
+                setLoadingCatalogue(true);
+                if (await loadStartingCatalogue()) toast('Starting catalogue loaded');
+                setLoadingCatalogue(false);
+              }}
+              className="btn btn-sm btn-outline"
+            >
+              {loadingCatalogue ? 'Loading' : products.length > 0 ? 'Reload the starting catalogue' : 'Load the starting catalogue'}
+            </button>
+          )}
 
           <button
             type="submit"

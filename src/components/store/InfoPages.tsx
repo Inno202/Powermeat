@@ -212,7 +212,7 @@ const Clause: React.FC<{ title: string; children: React.ReactNode }> = ({ title,
 export const PrivacyPolicyPage: React.FC<PageProps> = () => {
   return (
     <Shell title="Privacy policy" image={HERO_PHOTOS[2]}>
-      <p className="num text-sm text-ink-soft">Last updated 16 November 2026</p>
+      <p className="num text-sm text-ink-soft">Last updated 17 November 2026</p>
       <p className="mt-2 text-lg max-w-[60ch]">
         Protection of Personal Information Act (POPIA, Act 4 of 2013) compliance statement.
       </p>
@@ -266,13 +266,27 @@ export const PrivacyPolicyPage: React.FC<PageProps> = () => {
             Access is restricted exclusively to authorized Powermeat staff through role-based access control.
           </p>
           <p>
-            This device remembers your cart and the order numbers you placed here, so you can track and repeat them.
-            To look up an order from another device we ask for both the order number and the cell number used on it.
+            Orders are stored in Google Firebase (Cloud Firestore), Google's database service, and may be kept on
+            servers outside South Africa. Google processes them on our behalf under its data protection terms.
+          </p>
+          <p>
+            This device keeps your cart and a copy of the orders you placed here, so you can see and repeat them. If you
+            sign in with Google on the Track my order page, we use your email address only to show the orders placed
+            with it.
           </p>
         </Clause>
 
         <Clause title="5. Other services this site uses">
           <ul className="list-disc pl-5 space-y-2">
+            <li>
+              <strong className="text-ink">Google Firebase:</strong> Stores orders and the product catalogue (Cloud
+              Firestore) and handles sign-in for staff and for customers who choose to sign in (Firebase
+              Authentication).
+            </li>
+            <li>
+              <strong className="text-ink">GitHub Pages:</strong> Hosts this website. GitHub receives your IP address
+              when the page loads.
+            </li>
             <li>
               <strong className="text-ink">Google Fonts and Google Maps:</strong> The lettering and the store map are
               loaded from Google, which receives your IP address when the page loads.
@@ -286,7 +300,7 @@ export const PrivacyPolicyPage: React.FC<PageProps> = () => {
               Unsplash's image servers.
             </li>
           </ul>
-          <p>We do not use advertising or tracking cookies.</p>
+          <p>We do not use advertising or tracking cookies, or analytics. Signing in stores a sign-in token on your device so you stay signed in.</p>
         </Clause>
 
         <Clause title="6. Contact the Information Officer">
