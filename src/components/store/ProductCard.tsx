@@ -2,6 +2,7 @@ import React from 'react';
 import { Product } from '../../types';
 import { formatZAR, calcPricePerKg } from '../../utils/pricing';
 import { useStore } from '../../services/store';
+import { runningSpecialLabels } from '../../utils/specials';
 import { ProductPhoto } from '../ui/ProductPhoto';
 
 interface ProductCardProps {
@@ -16,7 +17,8 @@ export const PRICE_UNIT: Record<string, string> = {
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
-  const { addToCart } = useStore();
+  const { addToCart, specials } = useStore();
+  const specialLabel = runningSpecialLabels(specials).get(product.id);
   const pricePerKg = calcPricePerKg(product.price, product.weightKg);
   const soldOut = product.stockStatus === 'out_of_stock';
 
@@ -37,8 +39,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
         <ProductPhoto product={product} alt={product.name} className="photo-zoom" />
 
         <span className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start">
-          {product.isSpecial && (
-            <span className="badge bg-brand-accent text-white">{product.specialLabel || 'Special'}</span>
+          {specialLabel && (
+            <span className="badge bg-brand-accent text-white">{specialLabel}</span>
           )}
           {product.isFreeDelivery && (
             <span className="badge bg-white text-ink">

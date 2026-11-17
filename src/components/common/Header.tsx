@@ -22,9 +22,6 @@ export const Header: React.FC<HeaderProps> = ({
     settings
   } = useStore();
 
-  // One sign-in for everyone; the role on the account decides where it leads.
-  const accountTarget = currentUser || DEMO_MODE ? 'admin' : account ? 'my-orders' : 'signin';
-  const accountLabel = currentUser ? currentUser.name.split(' ')[0] : account ? 'My account' : 'Sign in';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-paper/95 backdrop-blur border-b border-ink/10">
@@ -52,24 +49,6 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {!(account && !currentUser) && (
-            <button
-              type="button"
-              onClick={() => onNavigatePage('my-orders')}
-              className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
-            >
-              My orders
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => onNavigatePage(accountTarget)}
-            className="hidden md:inline-flex btn btn-sm text-ink hover:bg-sand"
-          >
-            <span>{accountLabel}</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setIsCartDrawerOpen(true)}

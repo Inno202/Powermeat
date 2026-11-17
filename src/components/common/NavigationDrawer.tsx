@@ -24,9 +24,15 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onSelectCategory,
   onNavigatePage
 }) => {
-  const { settings, currentUser, account } = useStore();
+  const { settings, currentUser, account, logout } = useStore();
+  // One sign-in for everyone; the role on the account decides where it leads.
   const accountTarget = currentUser || DEMO_MODE ? 'admin' : account ? 'my-orders' : 'signin';
-  const accountLabel = currentUser ? 'Business area' : account ? 'My account' : 'Sign in';
+  const accountLabel = currentUser
+    ? `${currentUser.name.split(' ')[0]} · Business area`
+    : account
+      ? 'My account'
+      : 'Sign in';
+  const signedIn = !!currentUser || !!account;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -72,7 +78,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 Home
               </button>
               <button type="button" onClick={() => goPage('my-orders')} className={rowClass}>
-                Track my order
+                My orders
               </button>
               <button type="button" onClick={() => goPage('delivery_areas')} className={rowClass}>
                 Delivery areas and days
@@ -86,6 +92,18 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               <button type="button" onClick={() => goPage(accountTarget)} className={rowClass}>
                 {accountLabel}
               </button>
+              {signedIn && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    goPage('store');
+                  }}
+                  className={rowClass}
+                >
+                  Sign out
+                </button>
+              )}
             </div>
 
             <div>
